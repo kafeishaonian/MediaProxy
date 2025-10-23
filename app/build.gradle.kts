@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.media.proxy"
-    compileSdk = 36
+    compileSdk = 33
 
     defaultConfig {
         applicationId = "com.media.proxy"
@@ -32,9 +32,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
     }
 }
 

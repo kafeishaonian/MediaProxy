@@ -25,6 +25,9 @@ object ProxyPreload {
     private var init = false
     private var serverStart = false
 
+    init {
+        System.loadLibrary("media_proxy")
+    }
 
     /**
      * 设置预加载任务的监听

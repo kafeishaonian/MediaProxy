@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.media.proxy"
-    compileSdk = 36
+    compileSdk = 33
 
     defaultConfig {
         minSdk = 26

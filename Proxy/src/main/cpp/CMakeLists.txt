@@ -1,26 +1,48 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project("proxy")
+project("media_proxy")
 
+# boost
 set(BOOST_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/boost)
 get_filename_component(BOOST_ROOT ${BOOST_ROOT_PATH} ABSOLUTE)
 
+# curl
 set(PREBUILT_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/prebuilt)
 get_filename_component(PREBUILT_ROOT ${PREBUILT_ROOT_PATH} ABSOLUTE)
 
-if(${ANDROID_ABI} STREQUAL "arm64-v8a")
+#ffmpeg
+set(FFMPEG_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/ffmpeg)
+get_filename_component(FFMPEG_ROOT ${FFMPEG_ROOT_PATH} ABSOLUTE)
+
+if (${ANDROID_ABI} STREQUAL "arm64-v8a")
+    #boost
     set(BOOST_LIB_DIR ${BOOST_ROOT}/${ANDROID_ABI}/lib)
     set(BOOST_INCLUDE_DIR ${BOOST_ROOT}/${ANDROID_ABI}/include)
+
+    #curl
     set(PREBUILT_LIB_DIR ${PREBUILT_ROOT}/${ANDROID_ABI}/lib)
     set(PREBUILT_INCLUDE_DIR ${PREBUILT_ROOT}/${ANDROID_ABI}/include)
-endif()
+
+    #ffmpeg
+    set(FFMPEG_LIB_DIR ${FFMPEG_ROOT}/${ANDROID_ABI}/lib)
+    set(FFMPEG_INCLUDE_DIR ${FFMPEG_ROOT}/${ANDROID_ABI}/include)
+endif ()
 
 
-add_library(${CMAKE_PROJECT_NAME} SHARED proxy.cpp)
+add_library(${CMAKE_PROJECT_NAME} SHARED
+        proxy_jni.cpp
+        base/Base64Util.cpp
+        base/BaseUtil.cpp
+        base/GzipUtil.cpp
+        base/MD5Util.cpp
+        base/JsonParser.cpp
+)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${BOOST_INCLUDE_DIR})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${PREBUILT_INCLUDE_DIR})
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIR})
 
 add_library(boost_atomic STATIC IMPORTED)
 set_target_properties(boost_atomic PROPERTIES IMPORTED_LOCATION ${BOOST_LIB_DIR}/libboost_atomic.a)
@@ -49,6 +71,31 @@ set_target_properties(ssl PROPERTIES IMPORTED_LOCATION ${PREBUILT_LIB_DIR}/libss
 add_library(zip STATIC IMPORTED)
 set_target_properties(zip PROPERTIES IMPORTED_LOCATION ${PREBUILT_LIB_DIR}/libz.a)
 
+add_library(avcodec STATIC IMPORTED)
+set_target_properties(avcodec PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libavcodec.a)
+
+add_library(avdevice STATIC IMPORTED)
+set_target_properties(avdevice PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libavdevice.a)
+
+add_library(avfilter STATIC IMPORTED)
+set_target_properties(avfilter PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libavfilter.a)
+
+add_library(avformat STATIC IMPORTED)
+set_target_properties(avformat PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libavformat.a)
+
+add_library(avutil STATIC IMPORTED)
+set_target_properties(avutil PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libavutil.a)
+
+add_library(postproce STATIC IMPORTED)
+set_target_properties(postproce PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libpostproce.a)
+
+add_library(swresample STATIC IMPORTED)
+set_target_properties(swresample PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libswresample.a)
+
+add_library(swscale STATIC IMPORTED)
+set_target_properties(swscale PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/libswscale.a)
+
+
 find_library(ZLIB_LIB z)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
@@ -64,5 +111,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         curl
         ssl
         zip
+        avcodec
+        avdevice
+        avfilter
+        avformat
+        avutil
+        postproce
+        swresample
+        swscale
         ${ZLIB_LIB}
 )
