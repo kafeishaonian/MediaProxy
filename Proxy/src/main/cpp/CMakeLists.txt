@@ -42,8 +42,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SOURCE_ROOT}/base
         ${SOURCE_ROOT}/cache/disk
         ${SOURCE_ROOT}/common
-        ${SOURCE_ROOT}/utils
+        ${SOURCE_ROOT}/http
         ${SOURCE_ROOT}/interface
+        ${SOURCE_ROOT}/preload
+        ${SOURCE_ROOT}/utils
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${BOOST_INCLUDE_DIR})
