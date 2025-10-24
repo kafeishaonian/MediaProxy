@@ -7,24 +7,24 @@
 namespace PBase {
 
     MD5Util::Impl::Impl() {
-        _context = av_md5_alloc();
-        av_md5_init(_context);
+        context_ = av_md5_alloc();
+        av_md5_init(context_);
     }
 
     MD5Util::Impl::~Impl() {
-        if (_context) {
-            av_freep(&_context);
+        if (context_) {
+            av_freep(&context_);
         }
     }
 
     void MD5Util::Impl::update(const uint8_t *src, int len) {
-        av_md5_update(_context, src, len);
+        av_md5_update(context_, src, len);
     }
 
     std::string MD5Util::Impl::getResult() {
         uint8_t buffer[16];
         memset(buffer, 0, 16);
-        av_md5_final(_context, buffer);
+        av_md5_final(context_, buffer);
 
         char dst[40];
         memset(dst, 0, 40);
@@ -50,7 +50,7 @@ namespace PBase {
         return result;
     }
 
-    MD5Util::MD5Util() : _impl(new Impl()) {
+    MD5Util::MD5Util() : impl_(new Impl()) {
     }
 
     MD5Util::~MD5Util() {
@@ -58,10 +58,10 @@ namespace PBase {
     }
 
     void MD5Util::update(const uint8_t *src, int len) {
-        _impl->update(src, len);
+        impl_->update(src, len);
     }
 
     std::string MD5Util::getResult() {
-        return _impl->getResult();
+        return impl_->getResult();
     }
 }

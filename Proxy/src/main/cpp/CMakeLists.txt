@@ -1,17 +1,22 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 project("media_proxy")
+# 源代码
+set(SOURCE_ROOT ${CMAKE_SOURCE_DIR})
+file(GLOB_RECURSE SOURCE_FILES
+        "${SOURCE_ROOT}/*.cpp"
+)
 
 # boost
-set(BOOST_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/boost)
+set(BOOST_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/boost)
 get_filename_component(BOOST_ROOT ${BOOST_ROOT_PATH} ABSOLUTE)
 
 # curl
-set(PREBUILT_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/prebuilt)
+set(PREBUILT_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/prebuilt)
 get_filename_component(PREBUILT_ROOT ${PREBUILT_ROOT_PATH} ABSOLUTE)
 
 #ffmpeg
-set(FFMPEG_ROOT_PATH ${CMAKE_SOURCE_DIR}/../../../libs/ffmpeg)
+set(FFMPEG_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/ffmpeg)
 get_filename_component(FFMPEG_ROOT ${FFMPEG_ROOT_PATH} ABSOLUTE)
 
 if (${ANDROID_ABI} STREQUAL "arm64-v8a")
@@ -30,12 +35,15 @@ endif ()
 
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
-        proxy_jni.cpp
-        base/Base64Util.cpp
-        base/BaseUtil.cpp
-        base/GzipUtil.cpp
-        base/MD5Util.cpp
-        base/JsonParser.cpp
+        ${SOURCE_FILES}
+)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+        ${SOURCE_ROOT}
+        ${SOURCE_ROOT}/base
+        ${SOURCE_ROOT}/cache/disk
+        ${SOURCE_ROOT}/common
+        ${SOURCE_ROOT}/utils
+        ${SOURCE_ROOT}/interface
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${BOOST_INCLUDE_DIR})

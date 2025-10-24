@@ -39,13 +39,13 @@ namespace PBase {
             std::string getResult();
 
         private:
-            AVMD5* _context;
+            AVMD5* context_;
 
         public:
             ~Impl();
         };
 
-        std::unique_ptr<Impl> _impl;
+        std::unique_ptr<Impl> impl_;
     };
 }
 

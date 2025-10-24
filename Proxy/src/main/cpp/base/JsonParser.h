@@ -9,6 +9,7 @@
 #include <vector>
 #include <functional>
 
+
 using namespace std;
 
 namespace PBase{
@@ -57,10 +58,7 @@ namespace PBase{
 
     private:
         class Impl;
-        unique_ptr<Impl> _impl;
-
-
-
+        unique_ptr<Impl> impl_;
 
     };
 }
