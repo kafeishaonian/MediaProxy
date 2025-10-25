@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22.1)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project("media_proxy")
 # 源代码
 set(SOURCE_ROOT ${CMAKE_SOURCE_DIR})
@@ -41,6 +44,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SOURCE_ROOT}
         ${SOURCE_ROOT}/base
         ${SOURCE_ROOT}/cache/disk
+        ${SOURCE_ROOT}/cache/memory
         ${SOURCE_ROOT}/common
         ${SOURCE_ROOT}/http
         ${SOURCE_ROOT}/interface

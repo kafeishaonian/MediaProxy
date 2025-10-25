@@ -87,6 +87,8 @@ public:
     // 设置预加载管理器
     int setupPreloadManager(int threadNumber);
 
+    void uninitPreloadManager();
+
     /** URL转换 */
 
     //转换播放地址为代理地址
@@ -157,6 +159,9 @@ public:
 
     // 获取任务数量
     int getTaskCount(TASK_STATUS status);
+
+    int64_t getAllDownloadedBytes();
+    int64_t getCurAllDownloadRate();
 
     /**
      * 缓存管理
