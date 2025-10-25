@@ -10,6 +10,7 @@
 
 using StringVector = std::vector<std::string>;
 
+using StringMap = std::map<std::string, std::string>;
 using Int64Map = std::map<std::string, int64_t>;
 
 #endif //MEDIAPROXY_STLCOMMON_H

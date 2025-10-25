@@ -4,7 +4,7 @@
 
 #include "GzipUtil.h"
 
-namespace PBase {
+namespace proxy {
 
 
     std::string gzipCompress(const std::string& data) {

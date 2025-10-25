@@ -5,7 +5,7 @@
 #include "Base64Util.h"
 
 
-namespace PBase {
+namespace proxy {
 
     static const char *base64_chars[2] = {
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

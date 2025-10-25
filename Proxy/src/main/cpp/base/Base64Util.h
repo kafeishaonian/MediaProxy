@@ -12,7 +12,7 @@
 // 代码来自 https://github.com/ReneNyffenegger/cpp-base64.git
 
 
-namespace PBase {
+namespace proxy {
     std::string base64_encode(unsigned char const*, size_t len, bool url = false);
     std::string base64_decode(std::string const& s, bool remove_linebreaks = false);
 };

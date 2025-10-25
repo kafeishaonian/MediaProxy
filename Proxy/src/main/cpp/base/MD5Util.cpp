@@ -4,7 +4,7 @@
 
 #include "MD5Util.h"
 
-namespace PBase {
+namespace proxy {
 
     MD5Util::Impl::Impl() {
         context_ = av_md5_alloc();

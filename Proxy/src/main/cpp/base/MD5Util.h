@@ -15,7 +15,7 @@
 #include <algorithm>
 
 
-namespace PBase {
+namespace proxy {
 
     class MD5Util {
 

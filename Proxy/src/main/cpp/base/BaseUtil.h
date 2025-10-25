@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace PBase {
+namespace proxy {
 
     // 判断字符串是否为数字
     bool is_number(const std::string& string);

@@ -4,7 +4,7 @@
 
 #include "BaseUtil.h"
 
-namespace PBase {
+namespace proxy {
     bool is_number(const std::string& string) {
         if (string.empty()) {
             return false;

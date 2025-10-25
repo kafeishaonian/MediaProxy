@@ -13,7 +13,7 @@
 
 using namespace boost::iostreams;
 
-namespace PBase {
+namespace proxy {
 
     std::string gzipCompress(const std::string& data);
 
