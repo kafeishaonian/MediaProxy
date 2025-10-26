@@ -182,9 +182,9 @@ protected:
     std::timed_mutex read_write_lock_;
 
 private:
-    std::string config_file_name;
+    std::string config_file_name_;
 
-    std::string config_file_full_name;
+    std::string config_file_full_name_;
 };
 
 using PairCacheConfigFile = std::pair<std::string, std::shared_ptr<FileCacheInterface>>;

@@ -14,10 +14,10 @@ namespace proxy {
     /**
      * 读写锁定义
      */
-    using read_lock = std::shared_lock<std::shared_mutex>;
-    using write_lock = std::unique_lock<std::shared_mutex>;
-    using timed_lock = std::unique_lock<std::timed_mutex>;
-    using std_write_lock = std::unique_lock<std::mutex>;
+    using ReadLock = std::shared_lock<std::shared_mutex>;
+    using WriteLock = std::unique_lock<std::shared_mutex>;
+    using TimedLock = std::unique_lock<std::timed_mutex>;
+    using StdWriteLock = std::unique_lock<std::mutex>;
 
     // C++17 多锁自动加锁，避免死锁
     template<typename... MutexTypes>
