@@ -14,7 +14,7 @@
 
 template<typename T>
 struct ArrayDeleter {
-    void operator ()(T const * p) {
+    void operator()(T const *p) {
         delete[] p;
     }
 };
@@ -48,7 +48,7 @@ MemoryMediaCache::write_data(uint8_t *buffer, int64_t offset, uint64_t size, int
     for (; it != media_file_slices_.end();) {
         int64_t seg_start_position = it->offset_;
         int64_t seg_file_size = it->size_;
-        int64_t seg_end_position= seg_start_position + seg_file_size;
+        int64_t seg_end_position = seg_start_position + seg_file_size;
 
         if (write_start < seg_start_position) {
             if (write_end <= seg_start_position) {
@@ -111,131 +111,77 @@ MemoryMediaCache::write_data(uint8_t *buffer, int64_t offset, uint64_t size, int
     return write_size;
 }
 
+int64_t MemoryMediaCache::read_data(uint8_t *buffer, uint64_t offset, uint64_t size) {
+    proxy::WriteLock lock(read_write_lock_);
+    int is_found = 0;
+    int64_t read_size = 0;
+    MemoryMediaSlice *slice = nullptr;
+
+    uint64_t read_start = offset;
+    uint64_t read_end = offset + size;
+
+    uint64_t seg_start = 0;
+    uint64_t seg_end = 0;
+
+    uint64_t read_seg_size = 0;
+    uint64_t read_offset = 0;
+
+    for (auto it = media_file_slices_.begin(); it != media_file_slices_.end(); it++) {
+        uint64_t seg_start_position = it->offset_;
+        uint64_t seg_file_size = it->size_;
+        uint64_t seg_end_position = seg_start_position + seg_file_size;
+
+        if (read_start >= seg_start_position && read_end <= seg_end_position) {
+            read_seg_size = read_end - read_start;
+        } else if (read_start >= seg_start_position
+                   && read_start < seg_end_position
+                   && read_end > seg_end_position) {
+            read_seg_size = seg_end_position - read_start;
+        } else {
+            continue;
+        }
+        read_offset = read_start - seg_start_position;
+
+        for (int i = 0; i < read_seg_size; i++) {
+            buffer[read_size + i] = it->buffer_[i + read_offset];
+        }
+
+        read_size += read_seg_size;
+        read_start += read_seg_size;
+        size -= read_seg_size;
+        if (size == 0) {
+            break;
+        }
+    }
+
+    access_time_ = util_get_current_time_in_milli_seconds();
+
+    return read_size;
+}
+
+void MemoryMediaCache::set_file_size(uint64_t file_size) {
+    proxy::WriteLock lock(read_write_lock_);
+    file_size_ = file_size;
+}
+
+void MemoryMediaCache::set_file_key(std::string file_key) {
+    proxy::WriteLock lock(read_write_lock_);
+    file_key_ = file_key;
+}
+
+void MemoryMediaCache::serialize() {
+    proxy::WriteLock lock(read_write_lock_);
+
+    while (!media_file_slices_.empty()) {
+        auto it = media_file_slices_.begin();
+
+        if (it->size_ > 0) {
+            DiskCache::
+        }
+    }
+}
 
 
-
-
-//int64_t MMemoryMediaCache::readData(uint8_t *buffer, uint64_t offset, uint64_t size)
-//{
-//    MWriteLock lock(mReadWriteLock);
-//    int isFound = 0;
-//    int64_t readSize = 0;
-//    MMemoryMediaSlice *slice = NULL;
-//
-//    uint64_t readStart = offset;
-//    uint64_t readEnd = offset + size;
-//
-//    uint64_t segStart = 0;
-//    uint64_t segEnd = 0;
-//
-//    uint64_t readSegSize = 0;
-//    uint64_t readOffset = 0;
-//
-//    for (auto it = mMediaFileSlices.begin(); it != mMediaFileSlices.end(); it++) {
-//
-//        uint64_t segStartPosition = it->mOffset;
-//        uint64_t segFileSize = it->mSize;
-//        uint64_t segEndPosition = segStartPosition + segFileSize;
-//
-//        if (readStart >= segStartPosition && readEnd <= segEndPosition) {
-//            // 数据都在当前段落
-//            readSegSize = readEnd - readStart;
-//        } else if (readStart >= segStartPosition &&
-//                   readStart < segEndPosition &&
-//                   readEnd > segEndPosition) {
-//            // 数据有分段
-//            readSegSize = segEndPosition - readStart;
-//        } else {
-//            continue;
-//        }
-//        readOffset = readStart - segStartPosition;
-//
-////        __MDLOGD_TAG(TAG, "file offset = %u, size = %u", readStart, readSegSize);
-////        memcpy(buffer + readSize, it->mBuffer + readOffset, readSegSize);
-//        for (int i = 0; i < readSegSize; i++) {
-//            buffer[readSize + i] = it->mBuffer[i + readOffset];
-//        }
-//
-//        readSize += readSegSize;
-//        readStart += readSegSize;
-//        size -= readSegSize;
-//
-//        if (size == 0) {
-//            break;
-//        }
-//    }
-//
-//    mAccessTime = MUtilGetCurrentTimeInMilliSeconds();
-//
-//    return readSize;
-//
-////    do {
-////        isFound = findSlice(readStart, readSize, &slice);
-////        if (isFound > 0) {
-////            segStart = slice->mOffset;
-////            segEnd = segStart + slice->mSize;
-////
-////            if (readStart >= segStart && readStart < segEnd) {
-////
-////                if (readEnd >= segEnd) {
-////                    readSegSize = segEnd - readStart;
-////                    readOffset = readStart - segStart;
-////                } else {
-////                    readSegSize = readEnd - readStart;
-////                    readOffset = readStart - segStart;
-////                }
-////
-////            }
-////            memcpy(buffer + readSize, slice->mBuffer + readOffset, readSegSize);
-////            readSize += readSegSize;
-////            readStart += readSegSize;
-////        }
-////        if (readSize == size) {
-////            break;
-////        }
-////    } while (isFound > 0);
-////    return readSize;
-//
-//    //    uint64_t readStart = offset;
-//    //    uint64_t readEnd = offset + size;
-//    //
-//    //    uint64_t segStart = mOffset;
-//    //    uint64_t segEnd = mOffset + mSize;
-//    //
-//    //    uint64_t readSize = 0;
-//    //    uint64_t readOffset = 0;
-//    //
-//    //    if (readStart >= segStart && readStart < segEnd) {
-//    //
-//    //        if (readEnd >= segEnd) {
-//    //            readSize = segEnd - readStart;
-//    //            readOffset = readStart - segStart;
-//    //        } else {
-//    //            readSize = readEnd - readStart;
-//    //            readOffset = readStart - segStart;
-//    //        }
-//    //
-//    //    }
-//    //
-//    //    if (readSize > 0) {
-//    //        memcpy(buffer, mData.get() + readOffset, readSize);
-//    //    }
-//    //
-//    //    return readSize;
-//}
-//
-//void MMemoryMediaCache::setFileSize(uint64_t fileSize)
-//{
-//    MWriteLock lock(mReadWriteLock);
-//    mFileSize = fileSize;
-//}
-//
-//void MMemoryMediaCache::setFileKey(std::string fileKey)
-//{
-//    MWriteLock lock(mReadWriteLock);
-//    mFileKey = fileKey;
-//}
-//
 //void MMemoryMediaCache::serialize()
 //{
 //    MWriteLock lock(mReadWriteLock);

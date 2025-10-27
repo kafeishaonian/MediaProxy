@@ -44,6 +44,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SOURCE_ROOT}
         ${SOURCE_ROOT}/base
         ${SOURCE_ROOT}/cache/disk
+        ${SOURCE_ROOT}/cache/manager
         ${SOURCE_ROOT}/cache/memory
         ${SOURCE_ROOT}/common
         ${SOURCE_ROOT}/http
