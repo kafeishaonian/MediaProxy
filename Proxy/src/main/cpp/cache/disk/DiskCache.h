@@ -83,7 +83,7 @@ public:
 
     int get_cache_file_info_with_key(const std::string &fileKey, CacheFileInfo &fileInfo);
 
-//    int get_cache_complete_and_limit_size_file_list(std::)
+    int get_cache_complete_and_limit_size_file_list(std::vector<std::string>& file_keys);
 };
 
 
