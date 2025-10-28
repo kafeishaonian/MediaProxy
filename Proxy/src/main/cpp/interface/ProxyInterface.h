@@ -17,6 +17,11 @@
 #include <libavformat/avformat.h>
 
 
+#include "DiskCache.h"
+#include "CacheM"
+
+
+
 #include "PreloadManager.h"
 #include "HttpServerAdvancedSessionRequestInfo.h"
 #include "SpinMutex.h"
@@ -52,13 +57,6 @@
 #include "DNSRank.hpp"               // DNS优化
 
 
-//可选
-//#include "ProxyInfo.h"               // 代理信息（版本号等）
-//#include "ProxyLoggerSetter.h"        // 日志设置
-//#include "HttpClientManager.h"        // HTTP客户端管理器(用于异步获取Peer)
-//#include "PreloadStatTaskInfo.h"     //任务统计信息
-
-
 class ProxyInterface {
 
 public:
@@ -76,18 +74,18 @@ public:
     void un_init();
 
     // 设置缓存路径
-    int setupCache(const char *path);
+    int setup_cache(const char *path);
 
     // 设置HTTP代理服务器
-    int setupProxy(std::string configPath,
+    int setup_proxy(std::string configPath,
                    std::string address,
                    uint16_t port,
                    int serverThreadNumber);
 
     // 设置预加载管理器
-    int setupPreloadManager(int threadNumber);
+    int setup_preload_manager(int threadNumber);
 
-    void uninitPreloadManager();
+    void uninit_preload_manager();
 
     /** URL转换 */
 
@@ -96,7 +94,7 @@ public:
                                 const char *real_host = nullptr);
 
     // 生成会话ID
-    std::string generateSession();
+    std::string generate_session();
 
     /** 服务器控制 */
     // 启动HTTP服务器

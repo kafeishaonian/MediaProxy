@@ -7,10 +7,13 @@
 
 #include <vector>
 #include <string>
+#include <mutex>
 
 using StringVector = std::vector<std::string>;
+using UniqueLock = std::unique_lock<std::mutex>;
 
 using StringMap = std::map<std::string, std::string>;
 using Int64Map = std::map<std::string, int64_t>;
+using StringList = std::list<std::string>;
 
 #endif //MEDIAPROXY_STLCOMMON_H

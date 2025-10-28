@@ -11,6 +11,7 @@
 
 class CacheInfo {
 
+public:
     CacheInfo(
             const std::string &key,
             const int64_t offset

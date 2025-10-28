@@ -6,9 +6,7 @@
 #define MEDIAPROXY_DISKCACHE_H
 
 //
-//#include "ICacheFileChangeListener.h"
 //#include "MCacheConfigFile.hpp"
-//#include "MDiskCacheCommon.h"
 //
 
 #include <list>
@@ -22,6 +20,7 @@
 #include "CacheInfo.h"
 #include "FileCacheInterface.h"
 #include "LRUCache.h"
+#include "ICacheFileChangeListener.h"
 
 
 class DiskCache {
@@ -67,7 +66,7 @@ public:
                             std::vector<std::pair<uint64_t, uint64_t>> &empty_segment_vector);
 
     int64_t
-    read_data(const char *file_path_url, uint8_t *buffer, uint64_t offset, uint64_t read_size);
+    read_data(const char *file_path_url, uint8_t *buffer, uint64_t offset, uint64_t size);
 
     int64_t writeData(const char *file_path_url, uint8_t *buffer, uint64_t offset,
                       uint64_t read_size,
@@ -83,74 +82,48 @@ public:
 
     int get_cache_file_info_with_key(const std::string &fileKey, CacheFileInfo &fileInfo);
 
-    int get_cache_complete_and_limit_size_file_list(std::vector<std::string>& file_keys);
+    int get_cache_complete_and_limit_size_file_list(std::vector<std::string> &file_keys);
+
+    void set_cache_file_changed_listener(std::weak_ptr<ICacheFileChangeListener> listener);
+
+    bool is_cache_complete(const std::string &file_key);
+
+    std::string cale_file_sign(const std::string &file_key);
+
+    int64_t get_cache_info(std::shared_ptr<CacheInfo> &info);
+
+private:
+
+    std::shared_ptr<FileCacheInterface> build_config_file_with_file_key(const std::string &file_key,
+                                                                        bool add_top_map = true);
+
+    int get_all_cache_size();
+
+
+    int64_t check_if_remove_cache(int64_t all_cached_size);
+
+    void remove_file_notification_with_file_keys(const StringList &file_keys);
+
+    std::weak_ptr<ICacheFileChangeListener> cache_file_change_listener_;
+
+
+    bool is_file_key_exist_in_map(const std::string &fike_key);
+
+    void remove_all_cache();
+
+private:
+    std::string cache_path_string_;
+
+    std::timed_mutex read_write_lock_;
+
+    StringList file_removed_list_;
+
+    proxy::LRUCache<std::string, std::shared_ptr<FileCacheInterface>> files_map_;
+
+    std::vector<CacheFileInfo> total_file_list_;
+
+    int64_t all_cached_size_;
 };
 
 
 #endif //MEDIAPROXY_DISKCACHE_H
-
-
-//
-////    int getCacheCompleteFileList(std::vector<std::string> &fileKeys);
-//
-//    int getCacheCompleteAndLimitSizeFileList(std::vector<std::string> &fileKeys);
-//
-//    void setCacheFileChangeListener(std::weak_ptr<ICacheFileChangeListener> listener);
-//
-//    bool isCacheComplete(const std::string& fileKey);
-//
-////    bool queryDataRangeExist(const std::string& fileKey, int64_t start, int64_t size);
-//
-//    std::string calcFileSign(const std::string& fileKey);
-//
-//    int64_t getCacheInfo( std::shared_ptr<MCacheInfo>& info );
-//private:
-//
-//    std::string mCachePathString;
-//
-//    boost::timed_mutex mReadWriteLock;
-//
-//    StringList mFileRemovedList;
-//
-////    MFileCacheInterfaceMap mFilesMap;
-//
-//    MomoBase::MLRUCache<std::string, std::shared_ptr<MFileCacheInterface>> mFilesMap;
-//
-//    std::vector<CacheFileInfo> mTotalFileList;
-//
-//    int64_t mAllCachedSize;
-//
-//private:
-//
-//    // 通过文件key查找当前文件是否在FileMap中
-//    // 如果没有，则创建后添加到map中
-//    std::shared_ptr<MFileCacheInterface> buildConfigFileWithFileKey(const std::string &fileKey,
-//                                                                    bool addToMap = true);
-//
-////    int getAllCacheSize();
-//
-//    int getAllCacheSizeV2();
-//
-//    int64_t checkIfRemoveCache(int64_t allCachedSize);
-//
-////    int64_t checkIfRemoveCacheV2(int64_t allCachedSize);
-//
-//
-////    void removeExpireCache(int64_t &currentCachedSize, bool expiredFirstRemove);
-//
-////    void removeExpireCacheV2(int64_t &currentCachedSize, bool expiredFirstRemove);
-//
-////    void removeExpireCacheV3(int64_t &currentCachedSize);
-//
-////    void removeAllCache();
-//
-//    void removeFileNotificationWithFileKeys(const StringList &fileKeys);
-//
-//    std::weak_ptr<ICacheFileChangeListener> mCacheFileChangeListener;
-//
-//    bool isFileKeyExistInMap(const std::string &fileKey);
-//
-//    void removeAllCacheV2();
-//};
-//
-//#endif /* MDisKCache_hpp */

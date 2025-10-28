@@ -14,7 +14,7 @@ namespace proxy {
     class LRUCache {
     public:
         using KeyValuePairType = std::pair<Key, Value>;
-        using ListIteratorType = std::list<KeyValuePairType>;
+        using ListIteratorType = std::list<KeyValuePairType>::iterator;
 
         LRUCache(int size) {
             size_ = size;

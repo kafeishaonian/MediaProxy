@@ -5,119 +5,85 @@
 #ifndef MEDIAPROXY_MEMORYCACHE_H
 #define MEDIAPROXY_MEMORYCACHE_H
 
+#include <iostream>
+#include <map>
+#include <shared_mutex>
+
+#include "MemoryMediaCache.h"
+#include "CacheInfo.h"
 
 class MemoryCache {
 
+public:
+    MemoryCache();
+
+    ~MemoryCache();
+
+    static MemoryCache *get_instance();
+
+    int64_t get_file_size(const std::string &file_key);
+
+    int64_t read_data(const char *file_path_url,
+                      uint8_t *buffer,
+                      uint64_t offset,
+                      uint64_t buffer_size);
+
+    int64_t write_data(const char *file_path_url,
+                       uint8_t *buffer,
+                       int64_t offset,
+                       int64_t buffer_size,
+                       int64_t file_size = 0);
+
+    void dump_data(const char *file_path_url);
+
+    void dump_all_data();
+
+    void serialize_all();
+
+    void serialize();
+
+    void serialize_expired_cache();
+
+    std::pair<uint64_t, uint64_t> query_remain_data_by_offset(const char *file_key,
+                                                              uint64_t offset);
+
+    int query_empty_segment(const char *file_key,
+                            std::vector<std::pair<uint64_t, uint64_t>> &empty_segment_vector);
+
+    int64_t get_instance_parameter(const std::string &file_key, const std::string &parameter_key);
+
+    void get_instance_parameter_with_map(const std::string &file_key, Int64Map &map);
+
+    void set_instance_parameter(const std::string &file_key, const std::string &parameter_key,
+                                int64_t value);
+
+    int64_t calculate_memory_usage();
+
+    int64_t get_memory_usage();
+
+    void drop_all();
+
+    bool is_cache_complete(const std::string &file_key);
+
+    bool query_data_range_exist(const std::string &file_key,
+                                int64_t start,
+                                int64_t size);
+
+    int64_t get_cache_info(std::shared_ptr<CacheInfo> &info);
+
+private:
+    std::shared_ptr<MemoryMediaCache> find_memory_media_cache(const std::string &file_key);
+
+    std::shared_ptr<MemoryMediaCache>
+    find_or_create_memory_media_cache(const std::string &file_key);
+
+private:
+
+    std::shared_mutex read_write_lock_;
+
+    std::map<std::string, std::shared_ptr<MemoryMediaCache>> memory_media_lists_;
+
+    int64_t memory_usage_;
 };
 
-
 #endif //MEDIAPROXY_MEMORYCACHE_H
-
-
-//
-//#include <iostream>
-//#include <map>
-//#include <boost/thread/shared_mutex.hpp>
-//
-//#include "MMemoryMediaCache.hpp"
-//#include "MCacheInfo.hpp"
-//
-//class MMemoryCache
-//{
-//public:
-//    MMemoryCache();
-//
-//    ~MMemoryCache();
-//
-//    static MMemoryCache *getInstance();
-//
-//    /** 获取文件大小
-//     * @param filePathURL 文件的url path，或者用户指定文件key
-//     * @return 返回 -1 表示文件不存在
-//     */
-//    int64_t getFileSize(const std::string& fileKey);
-//
-//    /** 读取视频文件
-//     * @param filePathURL 文件的url path，或者用户指定文件key
-//     * @param buffer , 读取缓存
-//     * @param offset 文件偏移
-//     * @param bufferSize 读取大小
-//     * @return 返回 -1表示文件不存在；
-//     */
-//    int64_t readData(const char *filePathURL,
-//                     uint8_t *buffer,
-//                     uint64_t offset,
-//                     uint64_t bufferSize);
-//
-//    /** 写视频文件，
-//     * @param filePathURL 文件的url path，或者用户指定文件key
-//     * @param buffer , 缓存大小
-//     * @param offset 文件偏移
-//     * @param bufferSize 缓存大小
-//     * @param fileSize 文件大小
-//     * @return 返回 -1表示写文件失败；>= 0，写入的文件大小
-//     */
-//    int64_t writeData(const char *filePathURL,
-//                      uint8_t *buffer,
-//                      int64_t offset,
-//                      int64_t bufferSize,
-//                      int64_t fileSize = 0);
-//
-//    /** 显示内存数据
-//     */
-//    void dumpData(const char *filePathURL);
-//
-//    void dumpAllData();
-//
-//    void serializeAll();
-//
-//    void serialize();
-//
-//    void serializeExpiredCache();
-//
-//    /** 查找从offset开始 连续的剩余多少数据可用
-//     * @param fileKey 文件的key
-//     * @param offset 文件中的offset
-//     * @return first:剩余可用字节数  second:可填充数据空间大小，如后续无可用数据此值为0
-//     */
-//    std::pair<uint64_t, uint64_t> queryRemainDataByOffset(const char *fileKey,
-//                                                          uint64_t offset );
-//
-//    int queryEmptySegment(const char *fileKey,
-//                          std::vector<std::pair<uint64_t, uint64_t>> &emptySegmentVector);
-//
-//    int64_t getInstanceParameter(const std::string &fileKey, const std::string& parameterKey);
-//
-//    void getInstanceParameterWithMap(const std::string &fileKey, Int64Map& map);
-//
-//    void setInstanceParameter(const std::string &fileKey, const std::string& parameterKey, int64_t value);
-//
-//    int64_t calculateMemoryUsage();
-//
-//    int64_t getMemoryUsage();
-//
-//    void dropAll();
-//
-//    bool isCacheComplete(const std::string& fileKey);
-//
-//    bool queryDataRangeExist(const std::string& fileKey,
-//                             int64_t start,
-//                             int64_t size);
-//
-//    int64_t getCacheInfo( std::shared_ptr<MCacheInfo>& info );
-//private:
-//
-//    boost::shared_mutex mReadWriteLock;
-//
-//    std::map<std::string, std::shared_ptr<MMemoryMediaCache>> mMemoryMediaLists;
-//
-//    std::shared_ptr<MMemoryMediaCache> findMemoryMediaCache(const std::string& fileKey);
-//
-//    std::shared_ptr<MMemoryMediaCache> findOrCreateMemoryMediaCache(const std::string& fileKey);
-//
-//    int64_t mMemoryUsage;
-//
-//    const char *TAG;
-//};
-//
-//#endif /* MMemoryCache_hpp */

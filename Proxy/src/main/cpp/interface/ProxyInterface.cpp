@@ -17,7 +17,19 @@ std::shared_ptr<ProxyInterface> &ProxyInterface::get_instance() {
 }
 
 void ProxyInterface::init() {
-
     server_status_ = ServerStatus_Init;
+}
 
+void ProxyInterface::un_init() {
+    server_status_ = ServerStatus_UnInit;
+
+
+}
+
+
+int ProxyInterface::setup_cache(const char *path) {
+    DiskCache::get_instance()->set_cache_path(path);
+
+    MCacheManager::getInstance()->startSerializeTask();
+    return 0;
 }
