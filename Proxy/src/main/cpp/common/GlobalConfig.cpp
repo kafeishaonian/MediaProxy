@@ -9,6 +9,12 @@
 GlobalConfig::GlobalConfig() {
 
     cache_lock_timeout_in_ms_ = 500;
+
+    memory_cache_expired_time_in_second_ = 10;
+
+    enable_mapped_file_cache_ = false;
+
+    min_file_size_upload_tracker_ = 600 * 1024;
 }
 
 GlobalConfig::~GlobalConfig() {
@@ -19,7 +25,42 @@ GlobalConfig *GlobalConfig::get_instance() {
     return Singleton<GlobalConfig>::get_instance();
 }
 
+void GlobalConfig::set_cache_lock_timeout_in_ms(int timeout) {
+    proxy::WriteLock lock(read_write_lock_);
+    cache_lock_timeout_in_ms_ = timeout;
+}
+
 int GlobalConfig::get_cache_lock_timeout_in_ms() {
     proxy::WriteLock lock(read_write_lock_);
     return cache_lock_timeout_in_ms_;
+}
+
+void GlobalConfig::set_memory_expired_time_in_second(int second) {
+    proxy::WriteLock lock(read_write_lock_);
+    memory_cache_expired_time_in_second_ = second;
+}
+
+int GlobalConfig::get_memory_expired_time_in_second() {
+    proxy::WriteLock lock(read_write_lock_);
+    return memory_cache_expired_time_in_second_;
+}
+
+void GlobalConfig::set_enable_mapped_file_cache(bool enable) {
+    proxy::WriteLock lock(read_write_lock_);
+    enable_mapped_file_cache_ = enable;
+}
+
+bool GlobalConfig::get_enable_mapped_file_cache() {
+    proxy::WriteLock lock(read_write_lock_);
+    return enable_mapped_file_cache_;
+}
+
+void GlobalConfig::set_min_file_size_upload_tracker(uint64_t min_size) {
+    proxy::WriteLock lock(read_write_lock_);
+    min_file_size_upload_tracker_ = min_size;
+}
+
+uint64_t GlobalConfig::get_min_file_size_upload_tracker() {
+    proxy::WriteLock lock(read_write_lock_);
+    return min_file_size_upload_tracker_;
 }

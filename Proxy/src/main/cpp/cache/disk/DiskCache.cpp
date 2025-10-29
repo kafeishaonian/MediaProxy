@@ -10,7 +10,6 @@
 //#include "MStatisTag.hpp"
 //#include "MStatisUtil.hpp"
 //#include "XlogAdpater.h"
-//#include "MDiskCacheUtil.hpp"
 
 #include "DiskCache.h"
 
@@ -27,6 +26,8 @@
 #include "ProxyInterface.h"
 #include "GlobalConfig.h"
 #include "GlobalConstant.h"
+#include "DiskCacheUtil.h"
+#include "FileCacheInterface.h"
 
 
 DiskCache *DiskCache::get_instance() {
@@ -104,87 +105,70 @@ int64_t DiskCache::read_data(const char *file_path_url, uint8_t *buffer, uint64_
     return read_size;
 }
 
-//
-//int64_t MDiskCache::writeData(const char *filePathURL, uint8_t *buffer, uint64_t offset,
-//                              uint64_t size, uint64_t fileSize) {
-//    if (filePathURL == NULL) {
-//        __MDLOGE_TAG("MDiskCache", "filePathURL is NULL");
-//        return -1;
-//    }
-//    if (buffer == NULL) {
-//        __MDLOGE_TAG("MDiskCache", "buffer is NULL");
-//        return -1;
-//    }
-//
-//    int64_t writeSize = 0;
-//    std::shared_ptr<MFileCacheInterface> configFile = nullptr;
-//    {
-//        MTimedLock lock(mReadWriteLock);
-//        configFile = buildConfigFileWithFileKey(filePathURL);
-//    }
-//    if (configFile) {
-//        //        configFile->setFileMd5Key(md5Key);
-//        configFile->setFileSize(fileSize);
-//        writeSize = configFile->writeData(buffer, offset, size);
-//        //        configFile->updateConfigFile();
-//    } else {
-//        writeSize = -1;
-//    }
-//    return writeSize;
-//}
-//
-//int64_t MDiskCache::flushConfigFile(const std::string &filePathURL) {
-//    if (filePathURL.empty()) {
-//        __MDLOGE_TAG(MLogTAG::getInstance()->getTag(MLogTAGTypeDisk), "filePathURL is empty");
-//        return -1;
-//    }
-//
-//    int64_t writeSize = 0;
-//    std::shared_ptr<MFileCacheInterface> configFile = nullptr;
-//    {
-//        MTimedLock lock(mReadWriteLock);
-//        configFile = buildConfigFileWithFileKey(filePathURL);
-//    }
-//
-//    if (configFile) {
-//        writeSize = configFile->flushConfigFile();
-//        if (configFile->isCacheComplete() &&
-//            configFile->getFileSize() >
-//            MGlobalConfig::getInstance()->getMinFileSizeUploadTracker()) {
-//            if (configFile->isCacheComplete() &&
-//                configFile->getFileSize() >
-//                MGlobalConfig::getInstance()->getMinFileSizeUploadTracker()) {
-//                // 发送新增通知
-//                auto listener = mCacheFileChangeListener.lock();
-//                if (listener) {
-//                    listener->cacheAdded(configFile->getFileKey());
-//                }
-//            }
-//
-//            // 缓存不完整也上传到tracker
-//            //        uint64_t minSize =
-//            //        MGlobalConfig::getInstance()->getMinFileSizeUploadTracker(); if
-//            //        ((configFile->getFileSize() >= minSize) &&
-//            //            configFile->getCacheSize() >= minSize) {
-//            //            // 发送新增通知
-//            //            auto listener = mCacheFileChangeListener.lock();
-//            //            if (listener) {
-//            //                listener->cacheAdded(configFile->getFileKey());
-//            //            }
-//            //        }
-//            //        else if( configFile->isCacheComplete() && configFile->getFileSize() <=
-//            //        MGlobalConfig::getInstance()->getMinFileSizeUploadTracker()){
-//            //			__MDLOGE_TAG(MLogTAG::getInstance()->getTag(MLogTAGTypeDisk), "uploadfilesize is
-//            //small don't upload,
-//            //filesize:%llu,minSize:%llu,key:%s",configFile->getFileSize(),MGlobalConfig::getInstance()->getMinFileSizeUploadTracker(),configFile->getFileKey().c_str());
-//        }
-//    }
-//
-////    __MDLOGD_TAG(MLogTAG::getInstance()->getTag(MLogTAGTypeDisk),
-////                 "writeSize = %lld, filePathURL = %s", writeSize, filePathURL.c_str());
-//    return writeSize;
-//}
-//
+int64_t DiskCache::write_data(const char *file_path_url, uint8_t *buffer, uint64_t offset,
+                             uint64_t size, uint64_t file_size) {
+    if (file_path_url == nullptr) {
+        return -1;
+    }
+
+    if (buffer == nullptr) {
+        return -1;
+    }
+
+    int64_t write_size = 0;
+    std::shared_ptr<FileCacheInterface> config_file = nullptr;
+    {
+        proxy::TimedLock lock(read_write_lock_);
+        config_file = build_config_file_with_file_key(file_path_url);
+    }
+
+    if (config_file) {
+        config_file->set_file_size(file_size);
+        write_size = config_file->write_data(buffer, offset, size);
+    } else {
+        write_size = -1;
+    }
+    return write_size;
+}
+
+void
+DiskCache::set_instance_parameter(const std::string &file_key, const std::string &parameter_key,
+                                  int64_t value) {
+    std::shared_ptr<FileCacheInterface> config_file = nullptr;
+    {
+        proxy::TimedLock lock(read_write_lock_);
+        config_file = build_config_file_with_file_key(file_key);
+    }
+    if (config_file) {
+        config_file->set_instance_parameter(parameter_key, value);
+    }
+}
+
+int64_t DiskCache::flush_config_file(const std::string &file_path_url) {
+    if (file_path_url.empty()){
+        return -1;
+    }
+
+    int64_t write_size = 0;
+    std::shared_ptr<FileCacheInterface> config_file = nullptr;
+    {
+        proxy::TimedLock lock(read_write_lock_);
+        config_file = build_config_file_with_file_key(file_path_url);
+    }
+
+    if (config_file) {
+        write_size = config_file->flush_config_file();
+        if (config_file->is_cache_complete() && config_file->get_file_size() > GlobalConfig::get_instance()->get_min_file_size_upload_tracker()) {
+            auto listener = cache_file_change_listener_.lock();
+            if (listener) {
+                listener->cache_added(config_file->get_file_key());
+            }
+        }
+    }
+    return write_size;
+}
+
+
 //// TODO:需要加锁，代码未测试
 //int64_t MDiskCache::getFileSize(const char *filePathURL) {
 //    int64_t fileSize = -1;
@@ -463,18 +447,6 @@ int64_t DiskCache::read_data(const char *file_path_url, uint8_t *buffer, uint64_
 //    return result;
 //}
 //
-//void MDiskCache::setInstanceParameter(const std::string &fileKey, const std::string &parameterKey,
-//                                      int64_t value) {
-//    std::shared_ptr<MFileCacheInterface> configFile = nullptr;
-//    {
-//        MTimedLock lock(mReadWriteLock);
-//        configFile = buildConfigFileWithFileKey(fileKey);
-//    }
-//
-//    if (configFile) {
-//        configFile->setInstanceParameter(parameterKey, value);
-//    }
-//}
 //
 //// FIXME: 清除缓存最好不要播放视频
 //int64_t MDiskCache::clearCache() {
@@ -791,19 +763,15 @@ int64_t DiskCache::read_data(const char *file_path_url, uint8_t *buffer, uint64_
 ////    }
 ////}
 //
-//bool MDiskCache::isFileKeyExistInMap(const std::string &fileKey) {
-////    if (mFilesMap.find(fileKey) != mFilesMap.end()) {
-////        return true;
-////    } else {
-////        return false;
-////    }
-//    if (mFilesMap.exists(fileKey)) {
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
-//
+
+bool DiskCache::is_file_key_exist_in_map(const std::string &file_key) {
+    if (files_map_.exists(file_key)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 //#pragma mark---- File Remove V2 ----
 //
 //int MDiskCache::getAllCacheSizeV2() {
@@ -1045,69 +1013,37 @@ int64_t DiskCache::read_data(const char *file_path_url, uint8_t *buffer, uint64_
 //
 //#pragma mark---- Build Cache File ----
 //
-//std::shared_ptr<MFileCacheInterface> MDiskCache::buildConfigFileWithFileKey(const std::string &fileKey,
-//                                                                            bool addToMap) {
-//    int status = MDiskCacheUtil::isCachePathExist(mCachePathString);
-//    if (status < 0) {
-//        return nullptr;
-//    }
-//
-//    char md5Key[40];
-//    MUtilGenerateMD5Value((uint8_t *)md5Key, (uint8_t *)fileKey.c_str(),
-//                          (int)strlen(fileKey.c_str()));
-//
-//    status = MDiskCacheUtil::isFilePathExist(mCachePathString, md5Key);
-//    if (status < 0) {
-//        return nullptr;
-//    }
-//
-//    std::shared_ptr<MFileCacheInterface> configFile = nullptr;
-//    if (isFileKeyExistInMap(fileKey)) {
-//        configFile = mFilesMap.get(fileKey);
-//    }
-//    if (!configFile) {
-//        // config.json存在, 使用 MCacheConfigFile
-//        // config2.json存在, 使用 MappedFileCache
-//        bool useFileCacheV2 = MGlobalConfig::getInstance()->getEnableMappedFileCache();
-//        int configFileV1Exist = MDiskCacheUtil::isConfigFileV1Exist(mCachePathString, md5Key);
-//        if (configFileV1Exist == DiskCacheStatusOK || !useFileCacheV2) {
-//
-//            configFile = MMCreateCacheConfigFile(mCachePathString, fileKey);
-////            configFile = std::make_shared<MCacheConfigFile>();
-////
-////            std::string fileConfigPath = getConfigFileFullPath(md5Key);
-////            std::string videoFilePath = getVideoFilePath(md5Key);
-//
-//            //    configFile->setVideoFilePath(videoFilePath);
-//            //    configFile->setFileMd5Key(md5Key);
-//            //    configFile->setFileKey(fileKey);
-//            //    configFile->setConfigFileName(fileConfigPath);
-//
-////            StringMap  map;
-////            map[kVideoFilePath] = videoFilePath;
-////            map[kFileKeyMd5] = md5Key;
-////            map[kFileKey] = fileKey;
-////            map[kConfigFileName] = fileConfigPath;
-////            configFile->setParameter(map);
-//        } else {
-//            configFile = MMCreateFileDiskCache(mCachePathString, fileKey);
-//        }
-//
-//        if (addToMap) {
-////            mFilesMap[fileKey] = configFile;
-//            mFilesMap.put(fileKey, configFile);
-//        }
-//    }
-//
-//    //    int result = configFile->parse(fileConfigPath.c_str(), fileKey.c_str());
-//    //
-//    //    if (result < 0) {
-//    //        return nullptr;
-//    //    }
-//
-//    return configFile;
-//}
-//
+
+std::shared_ptr<FileCacheInterface>
+DiskCache::build_config_file_with_file_key(const std::string &file_key, bool add_top_map) {
+    int status = DiskCacheUtil::is_cache_path_exist(cache_path_string_);
+    if (status < 0) {
+        return nullptr;
+    }
+
+    char md5_key[40];
+    util_generate_md5_value((uint8_t *)md5_key, (uint8_t *)file_key.c_str(), (int)strlen(file_key.c_str()));
+    status = DiskCacheUtil::is_file_path_exist(cache_path_string_, md5_key);
+    if (status < 0) {
+        return nullptr;
+    }
+
+    std::shared_ptr<FileCacheInterface> config_file = nullptr;
+    if (is_file_key_exist_in_map(file_key)) {
+        config_file = files_map_.get(file_key);
+    }
+    if (!config_file) {
+        config_file = create_file_disk_cache(cache_path_string_, file_key);
+
+        if (add_top_map) {
+            files_map_.put(file_key, config_file);
+        }
+    }
+    return config_file;
+}
+
+
+
 //#pragma mark---- tracker support private function ----
 //
 //void MDiskCache::removeFileNotificationWithFileKeys(const StringList &fileKeys) {

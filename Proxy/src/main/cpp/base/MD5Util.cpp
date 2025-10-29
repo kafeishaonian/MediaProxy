@@ -21,7 +21,7 @@ namespace proxy {
         av_md5_update(context_, src, len);
     }
 
-    std::string MD5Util::Impl::getResult() {
+    std::string MD5Util::Impl::get_result() {
         uint8_t buffer[16];
         memset(buffer, 0, 16);
         av_md5_final(context_, buffer);
@@ -61,7 +61,7 @@ namespace proxy {
         impl_->update(src, len);
     }
 
-    std::string MD5Util::getResult() {
-        return impl_->getResult();
+    std::string MD5Util::get_result() {
+        return impl_->get_result();
     }
 }

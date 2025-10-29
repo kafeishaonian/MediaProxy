@@ -68,8 +68,8 @@ public:
     int64_t
     read_data(const char *file_path_url, uint8_t *buffer, uint64_t offset, uint64_t size);
 
-    int64_t writeData(const char *file_path_url, uint8_t *buffer, uint64_t offset,
-                      uint64_t read_size,
+    int64_t write_data(const char *file_path_url, uint8_t *buffer, uint64_t offset,
+                      uint64_t size,
                       uint64_t file_size = 0);
 
     int64_t flush_config_file(const std::string &file_path_url);
@@ -107,7 +107,7 @@ private:
     std::weak_ptr<ICacheFileChangeListener> cache_file_change_listener_;
 
 
-    bool is_file_key_exist_in_map(const std::string &fike_key);
+    bool is_file_key_exist_in_map(const std::string &file_key);
 
     void remove_all_cache();
 

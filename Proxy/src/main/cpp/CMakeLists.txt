@@ -22,6 +22,10 @@ get_filename_component(PREBUILT_ROOT ${PREBUILT_ROOT_PATH} ABSOLUTE)
 set(FFMPEG_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/ffmpeg)
 get_filename_component(FFMPEG_ROOT ${FFMPEG_ROOT_PATH} ABSOLUTE)
 
+#rapidjson
+set(RAPIDJSON_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/rapidjson)
+get_filename_component(RAPIDJSON_ROOT ${RAPIDJSON_ROOT_PATH} ABSOLUTE)
+
 if (${ANDROID_ABI} STREQUAL "arm64-v8a")
     #boost
     set(BOOST_LIB_DIR ${BOOST_ROOT}/${ANDROID_ABI}/lib)
@@ -34,6 +38,9 @@ if (${ANDROID_ABI} STREQUAL "arm64-v8a")
     #ffmpeg
     set(FFMPEG_LIB_DIR ${FFMPEG_ROOT}/${ANDROID_ABI}/lib)
     set(FFMPEG_INCLUDE_DIR ${FFMPEG_ROOT}/${ANDROID_ABI}/include)
+
+    #rapidjson
+    set(RAPIDJSON_INCLUDE_DIR ${RAPIDJSON_ROOT}/include)
 endif ()
 
 
@@ -60,6 +67,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${BOOST_INCLUDE_DIR})
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${PREBUILT_INCLUDE_DIR})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIR})
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${RAPIDJSON_INCLUDE_DIR})
 
 add_library(boost_atomic STATIC IMPORTED)
 set_target_properties(boost_atomic PROPERTIES IMPORTED_LOCATION ${BOOST_LIB_DIR}/libboost_atomic.a)

@@ -31,7 +31,7 @@ namespace proxy {
 
         void put(const Key& key, const Value& value) {
             auto it = cache_map_.find(key);
-            cache_list_.push_front(key_value_pair_type(key, value));
+            cache_list_.push_front(KeyValuePairType(key, value));
             if (it != cache_map_.end()) {
                 cache_list_.erase(it->second);
                 cache_map_.erase(it);

@@ -176,70 +176,55 @@ void MemoryMediaCache::serialize() {
         auto it = media_file_slices_.begin();
 
         if (it->size_ > 0) {
-            DiskCache::
+            DiskCache::get_instance()->write_data(file_key_.c_str(), &it->buffer_[0], it->offset_, it->size_);
         }
+
+        media_file_slices_.erase(it);
     }
 }
 
 
-//void MMemoryMediaCache::serialize()
-//{
-//    MWriteLock lock(mReadWriteLock);
-//
-//    while (!mMediaFileSlices.empty()) {
-//        auto it = mMediaFileSlices.begin();
-//        if (it->mSize > 0) {
-//            MDiskCache::getInstance()->writeData(mFileKey.c_str(), &it->mBuffer[0], it->mOffset, it->mSize);
-//            __MDLOGD_TAG(TAG, "save file = %s, offset = %lld, size = %lld", mFileKey.c_str(), it->mOffset, it->mSize);
-//        }
-//
-//        mMediaFileSlices.erase(it);
-//    }
-//}
-//
-//bool MMemoryMediaCache::isCacheExpired()
-//{
-//    MWriteLock lock(mReadWriteLock);
-//    uint64_t currentTime = MUtilGetCurrentTimeInMilliSeconds();
-//    uint64_t delta = currentTime - mAccessTime;
-//    int64_t expireTime = MGlobalConfig::getInstance()->getMemoryExpiredTimeInSecond();
-//    if (delta > expireTime * 1000) {
-//        __MDLOGD_TAG(TAG, "memory expired = %lld ms, key:%s", delta, mFileKey.c_str());
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
-//
-//int64_t MMemoryMediaCache::serializeExpiredCache()
-//{
-//    MWriteLock lock(mReadWriteLock);
-//    int64_t writeSize = 0;
-//    while (!mMediaFileSlices.empty()) {
-//        auto it = mMediaFileSlices.begin();
-//        if (it->mSize > 0) {
-//
-//            MDiskCache::getInstance()->setInstanceParameter(mFileKey, kPreloadSizeKey, mPreloadSize);
-//            MDiskCache::getInstance()->setInstanceParameter(mFileKey, kPreloadAudioDurationKey, mAudioDuration);
-//            MDiskCache::getInstance()->setInstanceParameter(mFileKey, kPreloadVideoDurationKey, mVideoDuration);
-//
-//            MDiskCache::getInstance()->writeData(mFileKey.c_str(), &it->mBuffer[0], it->mOffset, it->mSize, mFileSize);
-//
-////            __MDLOGD_TAG(MLogTAG::getInstance()->getTag(MLogTAGTypeMemory),
-////                         "PreloadSizeKey = %lld, AudioDuration = %lld, VideoDuration = %lld",
-////                         mPreloadSize, mAudioDuration, mVideoDuration);
-////            __MDLOGD_TAG(MLogTAG::getInstance()->getTag(MLogTAGTypeMemory),
-////                         "save file = %s, offset = %lld, size = %lld",
-////                         mFileKey.c_str(), it->mOffset, it->mSize);
-//            writeSize += it->mSize;
-//        }
-//        mMediaFileSlices.erase(it);
-//    }
-//    if( writeSize > 0 ){
-//        MDiskCache::getInstance()->flushConfigFile(mFileKey);
-//    }
-//    return writeSize;
-//}
+bool MemoryMediaCache::is_cache_expired() {
+    proxy::WriteLock lock(read_write_lock_);
+    int64_t current_time = util_get_current_time_in_milli_seconds();
+    int64_t delta = current_time - access_time_;
+    int64_t expire_time = GlobalConfig::get_instance()->get_memory_expired_time_in_second();
+    if (delta > expire_time * 1000) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+int64_t MemoryMediaCache::serialize_expired_cache() {
+    proxy::WriteLock lock(read_write_lock_);
+    int64_t write_size = 0;
+    while (!media_file_slices_.empty()) {
+        auto it = media_file_slices_.begin();
+        if (it->size_ > 0) {
+            DiskCache::get_instance()->set_instance_parameter(file_key_, PreloadSizeKey, preload_size_);
+            DiskCache::get_instance()->set_instance_parameter(file_key_, PreloadAudioDurationKey, audio_duration_);
+            DiskCache::get_instance()->set_instance_parameter(file_key_, PreloadVideoDurationKey, video_duration_);
+
+            DiskCache::get_instance()->write_data(file_key_.c_str(), &it->buffer_[0], it->offset_, it->size_, file_size_);
+
+            write_size += it->size_;
+        }
+        media_file_slices_.erase(it);
+    }
+    if (write_size > 0) {
+        DiskCache::get_instance()->flush_config_file(file_key_);
+    }
+    return write_size;
+}
+
+
+
+
+
+
+
+
 //
 //int64_t MMemoryMediaCache::getFileSize()
 //{

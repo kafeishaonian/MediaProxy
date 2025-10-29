@@ -26,7 +26,7 @@ namespace proxy {
 
         void update(const uint8_t *src, int len);
 
-        std::string getResult();
+        std::string get_result();
 
 
     private:
@@ -36,7 +36,7 @@ namespace proxy {
 
             void update(const uint8_t *src, int len);
 
-            std::string getResult();
+            std::string get_result();
 
         private:
             AVMD5* context_;

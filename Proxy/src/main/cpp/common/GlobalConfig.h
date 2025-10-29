@@ -24,8 +24,21 @@ public:
 
     ~GlobalConfig();
 
+    void set_cache_lock_timeout_in_ms(int timeout);
+
     int get_cache_lock_timeout_in_ms();
 
+    void set_memory_expired_time_in_second(int second);
+
+    int get_memory_expired_time_in_second();
+
+    void set_enable_mapped_file_cache(bool enable);
+
+    bool get_enable_mapped_file_cache();
+
+    void set_min_file_size_upload_tracker(uint64_t min_size);
+
+    uint64_t get_min_file_size_upload_tracker();
 
 private:
 
@@ -33,6 +46,11 @@ private:
     std::shared_mutex read_write_lock_;
 
     int cache_lock_timeout_in_ms_;
+    int memory_cache_expired_time_in_second_;
+
+    bool enable_mapped_file_cache_;
+
+    uint64_t min_file_size_upload_tracker_;
 };
 
 

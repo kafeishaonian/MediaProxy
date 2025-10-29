@@ -3,6 +3,7 @@
 //
 
 #include "ProxyInterface.h"
+#include "CacheManager.h"
 
 ProxyInterface::ProxyInterface() {
     server_status_ = ServerStatus_Create;
@@ -29,7 +30,6 @@ void ProxyInterface::un_init() {
 
 int ProxyInterface::setup_cache(const char *path) {
     DiskCache::get_instance()->set_cache_path(path);
-
-    MCacheManager::getInstance()->startSerializeTask();
+    CacheManager::get_instance()->start_serialize_task();
     return 0;
 }
