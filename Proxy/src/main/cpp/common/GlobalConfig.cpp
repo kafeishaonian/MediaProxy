@@ -8,6 +8,8 @@
 
 GlobalConfig::GlobalConfig() {
 
+    server_port_ = 0;
+
     cache_lock_timeout_in_ms_ = 500;
 
     memory_cache_expired_time_in_second_ = 10;
@@ -63,4 +65,14 @@ void GlobalConfig::set_min_file_size_upload_tracker(uint64_t min_size) {
 uint64_t GlobalConfig::get_min_file_size_upload_tracker() {
     proxy::WriteLock lock(read_write_lock_);
     return min_file_size_upload_tracker_;
+}
+
+void GlobalConfig::set_server_port(uint16_t port) {
+    proxy::WriteLock lock(read_write_lock_);
+    server_port_ = port;
+}
+
+uint16_t GlobalConfig::get_server_port() {
+    proxy::WriteLock lock(read_write_lock_);
+    return server_port_;
 }

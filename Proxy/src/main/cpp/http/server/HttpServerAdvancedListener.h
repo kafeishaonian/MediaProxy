@@ -1,0 +1,14 @@
+//
+// Created by Hongmingwei on 2025/10/29.
+//
+
+#ifndef MEDIAPROXY_HTTPSERVERADVANCEDLISTENER_H
+#define MEDIAPROXY_HTTPSERVERADVANCEDLISTENER_H
+
+
+class HttpServerAdvancedListener {
+
+};
+
+
+#endif //MEDIAPROXY_HTTPSERVERADVANCEDLISTENER_H

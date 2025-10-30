@@ -16,45 +16,51 @@
 #include <curl/curl.h>
 #include <libavformat/avformat.h>
 
-
 #include "DiskCache.h"
-#include "CacheM"
+#include "HttpProxy.h"
+#include "URIParser.h"
+#include "SingletonShared.h"
+#include "GlobalConfig.h"
+#include "Util.h"
+
+
+//#include "CacheM"
 
 
 
-#include "PreloadManager.h"
-#include "HttpServerAdvancedSessionRequestInfo.h"
-#include "SpinMutex.h"
-#include "LRUCache.h"
-
-
-#include "SingletonShared.h"         // 共享单例
-#include "URIParser2.hpp"            // URL解析
-#include "HttpProxy.hpp"             // HTTP代理服务器
-#include "GlobalConfig.hpp"          // 全局配置
-#include "XlogAdpater.h"              // 日志系统
-
-// 缓存管理
-#include "CacheConfigFile.hpp"       // 缓存配置文件
-#include "MemoryCache.hpp"           // 内存缓存
-#include "CacheManager.hpp"          // 缓存管理器
-#include "GlobalConstant.h"          // 全局常量
-
-// 预加载
-#include "PreloadManager2.hpp"       // 预加载管理器V2
-
-// HTTP功能
-#include "HttpClientCurlSync.hpp"    // 同步HTTP客户端(用于健康检查)
-#include "HttpConnectPool.hpp"       // HTTP连接池
-#include "CURLDownloader.hpp"        // CURL下载器
-
-// 工具类
-#include "Util.hpp"                  // 工具函数
-#include "JsonParser.hpp"            // JSON解析
-#include "JsonWriter.hpp"            // JSON写入
-#include "rlCoded.hpp"               // URL编码
-#include "SerialThread.h"            // 串行线程
-#include "DNSRank.hpp"               // DNS优化
+//#include "PreloadManager.h"
+//#include "HttpServerAdvancedSessionRequestInfo.h"
+//#include "SpinMutex.h"
+//#include "LRUCache.h"
+//
+//
+//#include "SingletonShared.h"         // 共享单例
+//#include "URIParser2.hpp"            // URL解析
+//#include "HttpProxy.hpp"             // HTTP代理服务器
+//#include "GlobalConfig.hpp"          // 全局配置
+//#include "XlogAdpater.h"              // 日志系统
+//
+//// 缓存管理
+//#include "CacheConfigFile.hpp"       // 缓存配置文件
+//#include "MemoryCache.hpp"           // 内存缓存
+//#include "CacheManager.hpp"          // 缓存管理器
+//#include "GlobalConstant.h"          // 全局常量
+//
+//// 预加载
+//#include "PreloadManager2.hpp"       // 预加载管理器V2
+//
+//// HTTP功能
+//#include "HttpClientCurlSync.hpp"    // 同步HTTP客户端(用于健康检查)
+//#include "HttpConnectPool.hpp"       // HTTP连接池
+//#include "CURLDownloader.hpp"        // CURL下载器
+//
+//// 工具类
+//#include "Util.hpp"                  // 工具函数
+//#include "JsonParser.hpp"            // JSON解析
+//#include "JsonWriter.hpp"            // JSON写入
+//#include "rlCoded.hpp"               // URL编码
+//#include "SerialThread.h"            // 串行线程
+//#include "DNSRank.hpp"               // DNS优化
 
 
 class ProxyInterface {
@@ -66,38 +72,28 @@ public:
 
     ~ProxyInterface();
 
-    /** 初始化与生命周期 */
-    // 初始化
     void init();
 
-    // 反初始化
     void un_init();
 
-    // 设置缓存路径
     int setup_cache(const char *path);
 
-    // 设置HTTP代理服务器
-    int setup_proxy(std::string configPath,
-                   std::string address,
+    int setup_proxy(const std::string config_path,
+                   const std::string address,
                    uint16_t port,
-                   int serverThreadNumber);
+                   int server_thread_number);
+
+    std::string switch_play_url(const char *play_url, const char *key = nullptr,
+                                const char *real_host = nullptr);
 
     // 设置预加载管理器
     int setup_preload_manager(int threadNumber);
 
     void uninit_preload_manager();
 
-    /** URL转换 */
-
-    //转换播放地址为代理地址
-    std::string switch_play_url(const char *play_url, const char *key = nullptr,
-                                const char *real_host = nullptr);
-
     // 生成会话ID
     std::string generate_session();
 
-    /** 服务器控制 */
-    // 启动HTTP服务器
     int start();
 
     // 停止HTTP服务器
@@ -312,6 +308,12 @@ private:
 
     std::atomic_int server_status_;
 
+    std::string server_config_path_;
+    std::string server_address_;
+    uint16_t server_port_;
+    int server_thread_number_;
+
+    std::unique_ptr<HttpProxy> http_server_;
 
 };
 

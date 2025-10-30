@@ -57,6 +57,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SOURCE_ROOT}/cache/serialize
         ${SOURCE_ROOT}/common
         ${SOURCE_ROOT}/http
+        ${SOURCE_ROOT}/http/server
         ${SOURCE_ROOT}/interface
         ${SOURCE_ROOT}/preload
         ${SOURCE_ROOT}/utils

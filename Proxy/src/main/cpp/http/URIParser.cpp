@@ -223,12 +223,12 @@ std::string URIParser::add_query(
 
         // 添加查询参数
         auto params = url_builder.params();
-        for (const auto& kv : user_query) {
+        for (const auto &kv: user_query) {
             params.append({kv.first, kv.second});
         }
 
         return url_builder.buffer();
-    } catch (std::exception& e) {
+    } catch (std::exception &e) {
         return "";
     }
 }

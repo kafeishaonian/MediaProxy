@@ -40,8 +40,12 @@ public:
 
     uint64_t get_min_file_size_upload_tracker();
 
+    void set_server_port(uint16_t port);
+
+    uint16_t get_server_port();
 private:
 
+    uint16_t server_port_;
 
     std::shared_mutex read_write_lock_;
 
