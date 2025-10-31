@@ -1,0 +1,14 @@
+//
+// Created by Hongmingwei on 2025/10/31.
+//
+
+#ifndef MEDIAPROXY_HTTPSERVERSESSIONREQUESTINFO_H
+#define MEDIAPROXY_HTTPSERVERSESSIONREQUESTINFO_H
+
+
+class HttpServerSessionRequestInfo {
+
+};
+
+
+#endif //MEDIAPROXY_HTTPSERVERSESSIONREQUESTINFO_H
