@@ -111,7 +111,7 @@ std::string ProxyInterface::generate_session() {
 
 int ProxyInterface::start() {
     server_status_ = ServerStatus_Started;
-    http_server_->start(true);
+    http_server_->start();
     return 0;
 }
 

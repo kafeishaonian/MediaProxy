@@ -28,7 +28,7 @@ public:
 
     ~HttpProxy();
 
-    int start(bool spin);
+    int start();
 
     int stop();
 

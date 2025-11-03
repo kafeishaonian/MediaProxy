@@ -19,6 +19,7 @@
 
 #include "NamedThread.h"
 #include "HttpServerAdvancedListener.h"
+#include "GlobalConfig.h"
 
 class HttpServerAdvancedBeast {
 
@@ -46,7 +47,7 @@ private:
 
     std::shared_ptr<HttpServerAdvancedListener> listener_;
 
-    boost::asio::io_context io_service_;
+    boost::asio::io_context io_context_;
 
     std::unique_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work_;
 

@@ -24,11 +24,11 @@ class HttpServerAdvancedListener : public std::enable_shared_from_this<HttpServe
 
 public:
     HttpServerAdvancedListener(
-            boost::asio::io_service &ios,
+            boost::asio::io_context &ioc,
             boost::asio::ip::tcp::endpoint endpoint,
             const std::string &dec_root
-    ) : strand_(ios.get_executor()), acceptor_(ios),
-        socket_(ios), doc_root_(dec_root),
+    ) : strand_(ioc.get_executor()), acceptor_(ioc),
+        socket_(ioc), doc_root_(dec_root),
         session_list_(10) {
 
         status_ = false;
@@ -110,7 +110,7 @@ public:
             //日志__LOGE_TAG(TAG, "http server listener accept error:%d", ec.value());
         } else {
             std::shared_ptr<HttpServerAdvancedSession> session =
-                    std::make_shared<HttpServerAdvancedSession>(std::move(socket_), doc_root_);
+                    std::make_shared<HttpServerAdvancedSession>(std::move(socket_));
             session->run();
             session_list_.push_back(session);
         }
