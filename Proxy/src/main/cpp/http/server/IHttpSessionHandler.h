@@ -5,8 +5,56 @@
 #ifndef MEDIAPROXY_IHTTPSESSIONHANDLER_H
 #define MEDIAPROXY_IHTTPSESSIONHANDLER_H
 
+#include <memory>
+#include <string>
+#include <iostream>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/steady_timer.hpp>
+
+#include "PreloadCommon.h"
 
 class IHttpSessionHandler {
+
+public:
+    IHttpSessionHandler(boost::asio::ip::tcp::socket &socket,
+                        boost::beast::http::request<boost::beast::http::string_body> &request) :
+            socket_(std::move(socket)),
+            request_(std::move(request)),
+            current_transfer_type_(TRANSFER_TYPE_HTTP) {
+    }
+
+    ~IHttpSessionHandler() {
+
+    }
+
+    static std::shared_ptr<IHttpSessionHandler> generate_session_handler(std::string& request_url);
+
+    int process();
+
+    void set_transmit_socket(boost::asio::ip::tcp::socket& socket) {
+        socket_ = std::move(socket);
+    }
+
+    void set_http_request(boost::beast::http::request<boost::beast::http::string_body>& request) {
+        request_ = std::move(request);
+    }
+
+    void close_socket() {
+        boost::system::error_code error_code;
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, error_code);
+    }
+
+
+private:
+    boost::asio::ip::tcp::socket socket_;
+
+    boost::beast::http::request<boost::beast::http::string_body> request_;
+
+    TRANSFER_TYPE current_transfer_type_;
 
 };
 

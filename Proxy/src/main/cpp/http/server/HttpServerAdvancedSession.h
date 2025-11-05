@@ -61,23 +61,21 @@ public:
         }
 
         if (ec) {
-            // TODO: 实现错误处理日志 MHttpServerFail(ec, "read");
+            //打印日志
             return;
         }
         
         switch (request_.method()) {
             case boost::beast::http::verb::get: {
                 uint64_t req_time = util_get_current_time_in_milli_seconds(), tmp_time;
-//                current_session_request_info_ = std::make_shared<HttpServerSessionRequestInfo>(req_time);
+                current_session_request_info_ = std::make_shared<HttpServerSessionRequestInfo>(req_time);
                 {
-//                    getPreloadParam2();
-//                    handler_ = CreateHTTPSessionHandler();
-//                    handler_->process();
+                    get_preload_param();
                     return;
                 }
             }
             case boost::beast::http::verb::head: {
-                // handleHeadRequest();
+                handle_head_request();
                 break;
             }
             default: {
@@ -85,6 +83,13 @@ public:
             }
         }
     }
+
+private:
+    void get_preload_param();
+
+    //处理head请求
+    void handle_head_request();
+
 
 private:
     boost::asio::ip::tcp::socket socket_;
