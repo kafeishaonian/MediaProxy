@@ -2,8 +2,8 @@
 // Created by Hongmingwei on 2025/10/31.
 //
 
-#ifndef MEDIAPROXY_IHTTPSESSIONHANDLER_H
-#define MEDIAPROXY_IHTTPSESSIONHANDLER_H
+#ifndef MEDIAPROXY_HTTPSESSIONHANDLER_H
+#define MEDIAPROXY_HTTPSESSIONHANDLER_H
 
 #include <memory>
 #include <string>
@@ -17,21 +17,20 @@
 
 #include "PreloadCommon.h"
 
-class IHttpSessionHandler {
-
+class HttpSessionHandler: public std::enable_shared_from_this<HttpSessionHandler>{
 public:
-    IHttpSessionHandler(boost::asio::ip::tcp::socket &socket,
-                        boost::beast::http::request<boost::beast::http::string_body> &request) :
+    HttpSessionHandler(boost::asio::ip::tcp::socket &socket,
+                       boost::beast::http::request<boost::beast::http::string_body> &request) :
             socket_(std::move(socket)),
             request_(std::move(request)),
             current_transfer_type_(TRANSFER_TYPE_HTTP) {
     }
 
-    ~IHttpSessionHandler() {
+    ~HttpSessionHandler() {
 
     }
 
-    static std::shared_ptr<IHttpSessionHandler> generate_session_handler(std::string& request_url);
+    static std::shared_ptr<HttpSessionHandler> generate_session_handler(std::string& request_url);
 
     int process();
 
@@ -59,4 +58,4 @@ private:
 };
 
 
-#endif //MEDIAPROXY_IHTTPSESSIONHANDLER_H
+#endif //MEDIAPROXY_HTTPSESSIONHANDLER_H

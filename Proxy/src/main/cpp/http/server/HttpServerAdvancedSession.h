@@ -16,7 +16,7 @@
 #include <iostream>
 
 #include "HttpServerSessionRequestInfo.h"
-#include "IHttpSessionHandler.h"
+#include "HttpSessionHandler.h"
 #include "Util.h"
 
 
@@ -104,7 +104,7 @@ private:
     std::string cur_session_id_;
 
     std::shared_ptr<HttpServerSessionRequestInfo> current_session_request_info_;
-    std::shared_ptr<IHttpSessionHandler> handler_;
+    std::shared_ptr<HttpSessionHandler> handler_;
 };
 
 #endif //MEDIAPROXY_HTTPSERVERADVANCEDSESSION_H
