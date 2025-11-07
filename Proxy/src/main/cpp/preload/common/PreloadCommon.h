@@ -1,0 +1,8 @@
+//
+// Created by Hongmingwei on 2025/11/7.
+//
+
+#ifndef MEDIAPROXY_PRELOADCOMMON_H
+#define MEDIAPROXY_PRELOADCOMMON_H
+
+#endif //MEDIAPROXY_PRELOADCOMMON_H

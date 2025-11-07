@@ -15,6 +15,9 @@
 #include "PreloadCommon.h"
 
 struct ITaskInfo {
+
+    ITaskInfo(){}
+
     ITaskInfo(
             int task_id,
             TASK_STATUS task_status,

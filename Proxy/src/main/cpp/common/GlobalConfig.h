@@ -43,6 +43,19 @@ public:
     void set_server_port(uint16_t port);
 
     uint16_t get_server_port();
+
+    void add_or_decrease_handler_instance(bool add_instance);
+
+    int get_handler_instance();
+
+    int get_http_server_read_try_times();
+
+    void set_http_server_read_try_times(int times);
+
+    int get_http_server_read_sleep_time_in_milli_second();
+
+    void set_http_server_read_sleep_time_in_milli_second(int milli_second);
+
 private:
 
     uint16_t server_port_;
@@ -55,6 +68,12 @@ private:
     bool enable_mapped_file_cache_;
 
     uint64_t min_file_size_upload_tracker_;
+
+    int handler_instance_;
+
+    int http_server_read_try_times_;
+
+    int http_server_read_sleep_time_;
 };
 
 

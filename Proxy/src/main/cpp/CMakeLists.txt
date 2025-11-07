@@ -61,6 +61,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SOURCE_ROOT}/http/common
         ${SOURCE_ROOT}/interface
         ${SOURCE_ROOT}/preload
+        ${SOURCE_ROOT}/preload/common
         ${SOURCE_ROOT}/utils
 )
 

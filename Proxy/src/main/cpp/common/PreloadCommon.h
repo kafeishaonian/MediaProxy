@@ -46,11 +46,16 @@ typedef enum task_end_reason {
 } TASK_END_REASON;
 
 
-
 typedef enum : int {
     TRANSFER_TYPE_INVALID = -1,
 
     TRANSFER_TYPE_HTTP
 } TRANSFER_TYPE;
+
+
+typedef enum : int {
+    BUSINESS_TYPE_INVALID = -1,
+    BUSINESS_TYPE_VOD = 0
+} BUSINESS_TYPE;
 
 #endif //MEDIAPROXY_PRELOADCOMMON_H

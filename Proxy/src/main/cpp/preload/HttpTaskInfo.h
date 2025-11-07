@@ -51,7 +51,9 @@ struct HttpTaskInfo : public ITaskInfo {
                 std::move(session_id),
                 is_first_network_packet,
                 TRANSFER_TYPE_HTTP
-        ) {};
+        ) {}
+
+    HttpTaskInfo() : ITaskInfo() {};
 
     ~HttpTaskInfo() {};
 

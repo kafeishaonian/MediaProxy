@@ -71,6 +71,8 @@ public:
                 current_session_request_info_ = std::make_shared<HttpServerSessionRequestInfo>(req_time);
                 {
                     get_preload_param();
+                    handler_ = std::make_shared<HttpSessionHandler>(socket_, request_);
+                    handler_->process();
                     return;
                 }
             }
