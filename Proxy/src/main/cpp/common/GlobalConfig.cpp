@@ -3,10 +3,14 @@
 //
 
 #include "GlobalConfig.h"
+
+#include <utility>
 #include "Singleton.h"
 #include "PreloadCommon.h"
 
 GlobalConfig::GlobalConfig() {
+
+    http_server_player_preload_size_ = GlobalConfigPlayerPreloadSize;
 
     server_port_ = 0;
 
@@ -23,6 +27,8 @@ GlobalConfig::GlobalConfig() {
     min_file_size_upload_tracker_ = 600 * 1024;
 
     handler_instance_ = 0;
+
+    http_server_min_playable_size_ = 1048576;
 }
 
 GlobalConfig::~GlobalConfig() {
@@ -87,9 +93,9 @@ uint16_t GlobalConfig::get_server_port() {
 void GlobalConfig::add_or_decrease_handler_instance(bool add_instance) {
     proxy::WriteLock lock(read_write_lock_);
     if (add_instance) {
-        handler_instance_ ++;
+        handler_instance_++;
     } else {
-        handler_instance_ --;
+        handler_instance_--;
     }
 }
 
@@ -117,4 +123,37 @@ int GlobalConfig::get_http_server_read_sleep_time_in_milli_second() {
 void GlobalConfig::set_http_server_read_sleep_time_in_milli_second(int milli_second) {
     proxy::WriteLock lock(read_write_lock_);
     http_server_read_sleep_time_ = milli_second;
+}
+
+void GlobalConfig::set_http_server_player_load_size(uint64_t size) {
+    proxy::WriteLock lock(read_write_lock_);
+    http_server_player_preload_size_ = size;
+    min_file_size_upload_tracker_ = size;
+}
+
+uint64_t GlobalConfig::get_http_server_player_load_size() {
+    proxy::WriteLock lock(read_write_lock_);
+    return http_server_player_preload_size_;
+}
+
+
+std::shared_ptr<std::vector<float>> GlobalConfig::get_http_server_player_load_size_factor() {
+    proxy::WriteLock lock(read_write_lock_);
+    return http_server_player_preload_size_factor_;
+}
+
+void
+GlobalConfig::set_http_server_player_load_size_factor(std::shared_ptr<std::vector<float>> factor) {
+    proxy::WriteLock lock(read_write_lock_);
+    http_server_player_preload_size_factor_ = std::move(factor);
+}
+
+int GlobalConfig::get_http_server_min_playable_size() {
+    proxy::WriteLock lock(read_write_lock_);
+    return http_server_min_playable_size_;
+}
+
+void GlobalConfig::set_http_server_min_playable_size(int size) {
+    proxy::WriteLock lock(read_write_lock_);
+    http_server_min_playable_size_ = size;
 }

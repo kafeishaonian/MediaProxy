@@ -25,66 +25,17 @@ class HttpServerAdvancedSession : public std::enable_shared_from_this<HttpServer
 public:
     explicit HttpServerAdvancedSession(
             boost::asio::ip::tcp::socket socket
-    ) : socket_(std::move(socket)),
-        strand_(socket_.get_executor()),
-        handler_(nullptr) {
+    );
 
+    ~HttpServerAdvancedSession();
 
-    }
+    void do_close();
 
-    ~HttpServerAdvancedSession() {
+    void run();
 
-    }
+    void do_read();
 
-    void do_close() {
-
-    }
-
-    void run() {
-        do_read();
-    }
-
-    void do_read() {
-        boost::beast::http::async_read(socket_, buffer_, request_,
-                                       boost::asio::bind_executor(strand_,
-                                           std::bind(&HttpServerAdvancedSession::on_read, shared_from_this(),
-                                               std::placeholders::_1, std::placeholders::_2)));
-    }
-
-    void on_read(boost::beast::error_code ec) {
-        if (ec == boost::asio::error::operation_aborted) {
-            return;
-        }
-
-        if (ec == boost::beast::http::error::end_of_stream) {
-            return do_close();
-        }
-
-        if (ec) {
-            //打印日志
-            return;
-        }
-        
-        switch (request_.method()) {
-            case boost::beast::http::verb::get: {
-                uint64_t req_time = util_get_current_time_in_milli_seconds(), tmp_time;
-                current_session_request_info_ = std::make_shared<HttpServerSessionRequestInfo>(req_time);
-                {
-                    get_preload_param();
-                    handler_ = std::make_shared<HttpSessionHandler>(socket_, request_);
-                    handler_->process();
-                    return;
-                }
-            }
-            case boost::beast::http::verb::head: {
-                handle_head_request();
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-    }
+    void on_read(boost::beast::error_code ec);
 
 private:
     void get_preload_param();

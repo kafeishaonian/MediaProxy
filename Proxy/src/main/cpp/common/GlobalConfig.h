@@ -56,6 +56,18 @@ public:
 
     void set_http_server_read_sleep_time_in_milli_second(int milli_second);
 
+    void set_http_server_player_load_size(uint64_t size);
+
+    uint64_t get_http_server_player_load_size();
+
+    void set_http_server_player_load_size_factor(std::shared_ptr<std::vector<float>> factor);
+
+    std::shared_ptr<std::vector<float>> get_http_server_player_load_size_factor();
+
+    void set_http_server_min_playable_size(int size);
+
+    int get_http_server_min_playable_size();
+
 private:
 
     uint16_t server_port_;
@@ -74,6 +86,12 @@ private:
     int http_server_read_try_times_;
 
     int http_server_read_sleep_time_;
+
+    uint64_t http_server_player_preload_size_;
+
+    std::shared_ptr<std::vector<float>> http_server_player_preload_size_factor_;
+
+    int http_server_min_playable_size_;
 };
 
 
