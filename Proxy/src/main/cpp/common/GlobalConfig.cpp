@@ -29,6 +29,8 @@ GlobalConfig::GlobalConfig() {
     handler_instance_ = 0;
 
     http_server_min_playable_size_ = 1048576;
+
+    preload_size_ = 300 * 1024;
 }
 
 GlobalConfig::~GlobalConfig() {
@@ -156,4 +158,14 @@ int GlobalConfig::get_http_server_min_playable_size() {
 void GlobalConfig::set_http_server_min_playable_size(int size) {
     proxy::WriteLock lock(read_write_lock_);
     http_server_min_playable_size_ = size;
+}
+
+void GlobalConfig::set_preload_size(int size) {
+    proxy::WriteLock lock(read_write_lock_);
+    preload_size_ = size;
+}
+
+int GlobalConfig::get_preload_size() {
+    proxy::WriteLock lock(read_write_lock_);
+    return preload_size_;
 }

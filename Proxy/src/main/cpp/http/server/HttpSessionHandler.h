@@ -23,6 +23,10 @@
 #include "Util.h"
 #include "HttpServerCommon.h"
 #include "URIParser.h"
+#include "CacheManager.h"
+#include "GlobalConstant.h"
+#include "ProxyInterface.h"
+#include "HTTPServerTaskManager.h"
 
 class HttpSessionHandler: public std::enable_shared_from_this<HttpSessionHandler>,
                           public PreloadTaskComplete {
@@ -109,10 +113,12 @@ private:
 
     void wait_tracker_when_exit();
 
-    void get_remote_peers();
 
     void wait_tracker_response();
 
+    void build_session_start_info();
+
+    void build_session_stop_info();
 
 private:
     boost::asio::ip::tcp::socket socket_;
@@ -170,6 +176,12 @@ private:
 
     std::mutex wait_mutex_;
     std::condition_variable wait_condition_;
+
+    int64_t init_play_time_;
+
+    uint64_t tracker_start_;
+
+    std::shared_ptr<HTTPServerTaskManager> http_server_task_manager_;
 };
 
 

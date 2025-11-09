@@ -68,6 +68,10 @@ public:
 
     int get_http_server_min_playable_size();
 
+    int get_preload_size();
+
+    void set_preload_size(int size);
+
 private:
 
     uint16_t server_port_;
@@ -92,6 +96,8 @@ private:
     std::shared_ptr<std::vector<float>> http_server_player_preload_size_factor_;
 
     int http_server_min_playable_size_;
+
+    int preload_size_;
 };
 
 

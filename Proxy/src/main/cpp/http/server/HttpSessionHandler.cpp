@@ -47,8 +47,65 @@ int HttpSessionHandler::process() {
                                                                       shared_from_this(),
                                                                       std::placeholders::_1)));
     get_preload_param();
+    get_request_range();
 
+    init_play_time_ = 0;
+    tmp_time = util_get_current_time_in_milli_seconds();
+    current_session_request_info_start_->parse_req_used_time_ = (uint32_t)(tmp_time - req_time);
+    current_session_request_info_stop_->parse_req_used_time_ = (uint32_t)(tmp_time - req_time);
+    int read_try_count = 0;
+
+    is_cache_complete_ = is_file_cache_complete();
+    player_load_dynamic_size_ = player_load_size_;
+    download_offset_ = 0;
+
+    build_session_start_info();
+
+    tracker_start_ = util_get_current_time_in_milli_seconds();
+
+    uint64_t file_size_start = util_get_current_time_in_milli_seconds();
+    file_size_ = get_file_size(read_try_count);
 }
+
+
+
+//uint64_t getFileSizeStart = MUtilGetCurrentTimeInMilliSeconds();
+//mFileSize = getFileSize(readTryCount);
+//mGetFileSizeCost = int(MUtilGetCurrentTimeInMilliSeconds() - getFileSizeStart);
+//
+//upErrorFileSizeLog(mPreloadURL);
+//
+//optimizeHttpTransferMode(mIsCacheComplete);
+//
+//reqTime = MUtilGetCurrentTimeInMilliSeconds();
+//mCurSessionReqInfoStop->mContentSizeUsedTime = (uint32_t) (reqTime - tmpTime);
+//
+//uint8_t buffer[8192];
+//uint64_t bufferSize = 8192;
+//int64_t readSize = 0;
+//int64_t totalReadSize = 0;
+//readTryCount = 0;
+//uint64_t offset = 0;
+//int isEof = 0;
+//mReadCnt = 0;
+//// 一般播放器请求只有 Range: bytes=0-
+//// 或者 Range: bytes=rangeStart-
+////            if (rangeStart >= 0 && rangeEnd > 0) {
+//if (mRangeStart > 0) {
+//offset = mRangeStart;
+//} else {
+//offset = 0;
+//}
+//
+//http::response<http::buffer_body> response;
+//http::response_serializer<http::buffer_body> serializer{response};
+//bool isNeedMsgBody = buildResponseHeader(response, offset, readTryCount);
+//boost::beast::error_code errorCode;
+//tmpTime = MUtilGetCurrentTimeInMilliSeconds();
+//mCurSessionReqInfoStop->mBuildResUsedTime = (uint32_t) (tmpTime - reqTime);
+//
+//bool isFirstPkt = true;
+//mIsReadCompleteDataForParse = false;
 
 void HttpSessionHandler::set_transmit_socket(boost::asio::ip::tcp::socket &socket) {
     socket_ = std::move(socket);
@@ -98,8 +155,6 @@ void HttpSessionHandler::on_read(boost::system::error_code error_code) {
 }
 
 void HttpSessionHandler::get_preload_param() {
-    uint64_t start = util_get_current_time_in_milli_seconds();
-
     std::string origin_target{request_.target()};
     std::string preload_url_with_query = http_server_get_preload_url(origin_target, false);
     current_session_request_info_start_->req_url_ = preload_url_with_query;
@@ -151,3 +206,63 @@ void HttpSessionHandler::get_preload_param() {
         preload_key_ = preload_path_;
     }
 }
+
+
+void HttpSessionHandler::get_request_range() {
+    std::pair<int64_t, int64_t> request_range = http_server_get_request_range(request_);
+    range_start_ = request_range.first;
+    range_end_ = request_range.second;
+
+    current_session_request_info_start_->req_range_start_ = range_start_;
+    current_session_request_info_start_->req_range_end_ = range_end_;
+
+    current_session_request_info_stop_->req_range_start_ = range_start_;
+    current_session_request_info_stop_->req_range_end_ = range_end_;
+}
+
+bool HttpSessionHandler::is_file_cache_complete() {
+    int64_t file_size = CacheManager::get_instance()->get_file_size(preload_key_.c_str());
+    required_preload_size_ = GlobalConfig::get_instance()->get_preload_size();
+
+    cached_size_ = CacheManager::get_instance()->get_instance_parameter(preload_key_.c_str(), CachedSizeKey);
+    preloaded_size_ = CacheManager::get_instance()->get_instance_parameter(preload_key_.c_str(), PreloadSizeKey);
+
+    bool is_cache_complete = CacheManager::get_instance()->is_cache_complete(preload_key_);
+    return is_cache_complete;
+}
+
+void HttpSessionHandler::build_session_start_info() {
+    current_session_request_info_start_-> is_cache_complete_ = is_cache_complete_;
+    current_session_request_info_start_->handler_instance_ = GlobalConfig::get_instance()->get_handler_instance();
+    ProxyInterface::get_instance()->append_server_result(current_session_request_info_start_);
+}
+
+int64_t HttpSessionHandler::get_file_size(int &read_try_count) {
+    int64_t file_size = 0;
+    int task_id = -1;
+    do {
+        file_size = CacheManager::get_instance()->get_file_size(preload_key_.c_str());
+        if (file_size <= 0) {
+            auto preload_url_cstring = (char *) preload_url_.c_str();
+            auto file_key = (char *) preload_key_.c_str();
+            const char *header = preload_header_.empty() ? nullptr : preload_header_.c_str();
+            if (is_http_error_) {
+                break;
+            }
+
+            if (!pause_preload_) {
+                pause_preload_ = true;
+                preload_manager_->pause_all_preload_task();
+            }
+
+            if (http_server_task_manager_->is_task_need_added()) {
+                int64_t down_size = get_player_load_size();
+
+                update_download_type(0, 0);
+//                UniqueLock lock(add_task)
+            }
+        }
+    } while (read_try_count < try_count_ && file_size <= 0);
+    return file_size;
+}
+

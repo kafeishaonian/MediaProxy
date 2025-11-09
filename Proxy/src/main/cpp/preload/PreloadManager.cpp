@@ -8,3 +8,8 @@
 PreloadManager *PreloadManager::get_instance() {
     return Singleton<PreloadManager>::get_instance();
 }
+
+
+int PreloadManager::pause_all_preload_task() {
+    return preload_task_list_.pause_all_preload_task();
+}

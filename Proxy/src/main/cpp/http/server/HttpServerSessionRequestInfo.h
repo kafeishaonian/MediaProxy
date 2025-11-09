@@ -58,8 +58,7 @@ public:
     // 重试统计
     int content_size_retry_cnt_;          // 获取 ContentSize 的重试次数
     int content_data_retry_cnt_;          // 读取内容数据失败时的最大重试次数
-    int transfer_mode_;                   // 传输模式
-    
+
     // 时间统计（单位：毫秒）
     uint32_t parse_req_used_time_;        // 解析请求头耗时（包括读取全局配置、解析URL、解析Range）
     uint32_t login_server_used_time_;     // 登录服务器耗时
@@ -93,6 +92,8 @@ public:
     int wait_count_;                      // 等待次数
     int add_task_id_;                     // 添加的任务ID
 
+    int handler_instance_;
+
     /**
      * 构造函数
      * @param start_time 会话开始时间戳（毫秒）
@@ -105,7 +106,6 @@ public:
         , res_content_len_(0)
         , content_size_retry_cnt_(0)
         , content_data_retry_cnt_(0)
-        , transfer_mode_(-1)
         , parse_req_used_time_(0)
         , login_server_used_time_(0)
         , content_size_used_time_(0)
@@ -130,6 +130,7 @@ public:
         , add_task_id_(0)
         , req_range_start_(-1)
         , req_range_end_(-1)
+        , handler_instance_(0)
     {
     }
 };

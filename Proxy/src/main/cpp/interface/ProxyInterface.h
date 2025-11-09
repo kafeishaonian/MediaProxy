@@ -197,7 +197,7 @@ public:
     shared_ptr <IPreloadResult> popPreloadResult();
 
     // 添加服务器结果
-    void appendServerResult(...);
+    void append_server_result(std::shared_ptr<HttpServerSessionRequestInfo> result);
 
     // 获取服务器结果
     shared_ptr <MHttpServerSessionRequestInfo> popServerResult();

@@ -6,6 +6,7 @@
 #define MEDIAPROXY_PRELOADMANAGER_H
 
 #include "Singleton.h"
+#include "TaskList.h"
 
 #define DEFAULT_THREAD_NUM 6
 
@@ -16,6 +17,11 @@ public:
 
     static PreloadManager *get_instance();
 
+    int pause_all_preload_task();
+
+
+private:
+    TaskList preload_task_list_;
 };
 
 
