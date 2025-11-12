@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "MediaProxy"
 include(":app")
 include(":Proxy")
+include(":dns")

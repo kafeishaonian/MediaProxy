@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.22.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project("media_proxy")
+project(media_proxy)
+
 # 源代码
 set(SOURCE_ROOT ${CMAKE_SOURCE_DIR})
 file(GLOB_RECURSE SOURCE_FILES
@@ -126,6 +127,8 @@ set_target_properties(swscale PROPERTIES IMPORTED_LOCATION ${FFMPEG_LIB_DIR}/lib
 
 
 find_library(ZLIB_LIB z)
+
+target_link_options(media_proxy PRIVATE "-Wl,-z,max-page-size=16384")
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         my_native_lib
