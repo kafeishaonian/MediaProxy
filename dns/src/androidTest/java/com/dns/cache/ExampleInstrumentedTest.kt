@@ -1,4 +1,4 @@
-package com.dns.demo
+package com.dns.cache
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

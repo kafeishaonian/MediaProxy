@@ -1,4 +1,4 @@
-package com.dns.demo
+package com.dns.cache
 
 import org.junit.Test
 

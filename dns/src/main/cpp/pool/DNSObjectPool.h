@@ -1,0 +1,12 @@
+//
+// Created by Hongmingwei on 2025/11/12.
+//
+
+#ifndef MEDIAPROXY_DNSOBJECTPOOL_H
+#define MEDIAPROXY_DNSOBJECTPOOL_H
+
+#endif //MEDIAPROXY_DNSOBJECTPOOL_H
+
+
+
+

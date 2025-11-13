@@ -1,0 +1,14 @@
+//
+// Created by Hongmingwei on 2025/11/12.
+//
+
+#ifndef MEDIAPROXY_DNSDUALSTACKOPTIMIZER_H
+#define MEDIAPROXY_DNSDUALSTACKOPTIMIZER_H
+
+
+class DNSDualStackOptimizer {
+
+};
+
+
+#endif //MEDIAPROXY_DNSDUALSTACKOPTIMIZER_H
