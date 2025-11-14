@@ -25,7 +25,7 @@ namespace dns {
     };
 
     Ping::Ping()
-            : icmp_socket_(-1), packet_size_(64), ttl_(64), ping_method_(PingMethod::ICMP_DGRAM) {
+            : icmp_socket_(-1), ping_method_(PingMethod::ICMP_DGRAM) {
         identifier_ = getpid() & 0xFFFF;
     }
 
@@ -179,10 +179,10 @@ namespace dns {
             auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(
                     recv_time - send_time).count();
 
-            IcmpEchoHeader* recv_icmp_header = (IcmpEchoHeader*)recv_buffer;
+            IcmpEchoHeader *recv_icmp_header = (IcmpEchoHeader *) recv_buffer;
             if (recv_icmp_header->type == 0 &&
-                    ntohs(recv_icmp_header->id) == identifier_ &&
-                    ntohs(recv_icmp_header->sequence) == sequence) {
+                ntohs(recv_icmp_header->id) == identifier_ &&
+                ntohs(recv_icmp_header->sequence) == sequence) {
                 reply.rtt = rtt;
                 reply.success = true;
                 reply.ttl = 64;
@@ -200,7 +200,7 @@ namespace dns {
         std::stringstream cmd;
         cmd << "ping -c " << count << " -W " << (timeou_ms / 1000) << " " << ip << " 2>&1";
 
-        FILE* pipe = popen(cmd.str().c_str(), "r");
+        FILE *pipe = popen(cmd.str().c_str(), "r");
         if (!pipe) {
             Logger::log(LogLevel::ERROR, "Ping", "执行ping命令失败");
             return result;
@@ -235,7 +235,7 @@ namespace dns {
         if (std::regex_search(output, match, stats_regex)) {
             result.sent = std::stoi(match[1]);
             result.received = std::stoi(match[2]);
-            result.loss_rate = ((result.sent - result.received) * 100) . /result.sent;
+            result.loss_rate = ((result.sent - result.received) * 100) / result.sent;
         }
 
         if (std::regex_search(output, match, rtt_summary_regex)) {
@@ -245,6 +245,24 @@ namespace dns {
         }
 
         return result;
+    }
+
+    uint16_t Ping::calculate_checksum(const char *buffer, int len) {
+        uint32_t sum = 0;
+        const auto *ptr = (const uint16_t *) buffer;
+        while (len > 1) {
+            sum += *ptr++;
+            len -= 2;
+        }
+
+        if (len == 1) {
+            sum += *(const uint8_t *) ptr;
+        }
+
+        sum = (sum >> 16) + (sum & 0xFFFF);
+        sum += (sum >> 16);
+
+        return ~sum;
     }
 }
 

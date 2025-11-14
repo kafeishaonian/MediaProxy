@@ -1,12 +1,20 @@
 #include <jni.h>
+#include <string>
+#include "DNSEntrance.h"
 
 static const char *TAG = "nds_jni";
 
-
 static void init(JNIEnv *env, jobject instance) {
-
+    try {
+        auto dns = dns::DNSEntranceImpl::get_instance("default");
+        auto impl = std::dynamic_pointer_cast<dns::DNSEntranceImpl>(dns);
+        if (impl) {
+            impl->init();
+        }
+    } catch (const std::exception& e) {
+        dns::Logger::log(dns::LogLevel::ERROR, "JNI", std::string("Init failed: ") + e.what());
+    }
 }
-
 static jstring resolveHost(JNIEnv *env, jobject instance, jstring hostname) {
 
 
