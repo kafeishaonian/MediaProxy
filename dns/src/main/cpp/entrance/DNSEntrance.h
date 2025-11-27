@@ -49,11 +49,30 @@ namespace dns {
 
         void clear() override;
 
+        void set_doh_server(const std::string& server);
 
-        static std::shared_ptr<DNSEntrance> get_instance(const std::string& key = "default");
+        void enable_system_dns(bool enable);
 
+        void enable_http_dns(bool enable);
+
+        void enable_local_cache(bool enable);
+
+        void set_cache_dir(const std::string& dir);
+
+        void set_cache_size(size_t size);
+
+        void set_cache_expire_time(int seconds);
+
+        void set_thread_count(int count);
+
+        DNSServer::ServerStats get_stats() const;
+
+        static std::shared_ptr<DNSEntrance> get_instance();
+
+        static clear_instance();
 
     private:
+        void init_dns_handlers();
 
 
     private:
@@ -72,8 +91,7 @@ namespace dns {
 
         mutable std::mutex mutex_;
 
-
-        static std::unordered_map<std::string, std::shared_ptr<DNSEntrance>> instances_;
+        static std::shared_ptr<DNSEntrance> instance_;
         static std::mutex instance_mutex_;
     };
 

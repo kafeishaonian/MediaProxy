@@ -51,14 +51,6 @@ namespace dns {
 
         PingResult ping(const std::string &ip, int count = 4, int timeout_ms = 1000);
 
-        static int get_average_rtt(const std::vector<IcmpEchoReply> &replies);
-
-        void set_packet_size(int size);
-
-        void set_ttl(int ttl);
-
-        void set_ping_method(PingMethod method);
-
     private:
         bool create_socket();
         bool create_dgram_socket();
