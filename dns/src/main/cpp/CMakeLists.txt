@@ -14,9 +14,16 @@ file(GLOB_RECURSE SOURCE_FILES
 set(PREBUILT_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/prebuilt)
 get_filename_component(PREBUILT_ROOT ${PREBUILT_ROOT_PATH} ABSOLUTE)
 
+#rapidjson
+set(RAPIDJSON_ROOT_PATH ${CMAKE_SOURCE_DIR}/../libs/rapidjson)
+get_filename_component(RAPIDJSON_ROOT ${RAPIDJSON_ROOT_PATH} ABSOLUTE)
+
 if (${ANDROID_ABI} STREQUAL "arm64-v8a")
     set(PREBUILT_LIB_DIR ${PREBUILT_ROOT}/${ANDROID_ABI}/lib)
     set(PREBUILT_INCLUDE_DIR ${PREBUILT_ROOT}/${ANDROID_ABI}/include)
+
+    #rapidjson
+    set(RAPIDJSON_INCLUDE_DIR ${RAPIDJSON_ROOT})
 endif ()
 
 
@@ -38,6 +45,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${PREBUILT_INCLUDE_DIR})
 
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${RAPIDJSON_INCLUDE_DIR})
 
 add_library(crypto STATIC IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION ${PREBUILT_LIB_DIR}/libcrypto.a)
