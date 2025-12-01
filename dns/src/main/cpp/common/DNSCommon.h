@@ -63,6 +63,13 @@ namespace dns {
         constexpr int DNS_PORT = 53;                    //DNS端口号
         constexpr int HTTP_PORT = 80;                   //HTTP端口号
         constexpr int HTTPS_PORT = 443;                 //HTTPS端口号
+
+        // Added: Named constants for maintenance and cleanup
+        constexpr int CLEANUP_INTERVAL_SECONDS = 3600;  // 1 hour
+        constexpr int CACHE_EXPIRE_SECONDS = 7200;      // 2 hours
+        constexpr int SPEED_CACHE_TTL_SECONDS = 300;    // 5 minutes
+        constexpr int MAX_IP_SPEED_TEST = 3;            // Maximum IPs to test speed
+        constexpr int RESOLVE_TIMEOUT_SECONDS = 3;      // DNS resolve timeout
     }
 
     class Logger {

@@ -5,7 +5,7 @@
 #ifndef MEDIAPROXY_DNSHOSTMANAGER_H
 #define MEDIAPROXY_DNSHOSTMANAGER_H
 
-#include <mutex>
+#include <shared_mutex>
 
 #include "DNSCommon.h"
 #include "DNSHostModel.h"
@@ -33,6 +33,13 @@ namespace dns {
 
         void clean_expired_hosts(int expire_seconds = 3600);
 
+        // 设置定期速度检测回调
+        using SpeedCheckCallback = std::function<void(const std::string&, std::shared_ptr<DNSHostModel>)>;
+        void set_speed_check_callback(SpeedCheckCallback callback);
+
+        // 触发所有缓存主机的速度检测
+        void trigger_speed_check_for_all();
+
         struct CacheStats {
             int total_hosts;
             int valid_hosts;
@@ -44,12 +51,13 @@ namespace dns {
         CacheStats get_stats() const;
 
     private:
-        bool is_host_expired(const std::shared_ptr<DNSHostModel>& host, int expire_seconds);
+        static bool is_host_expired(const std::shared_ptr<DNSHostModel>& host, int expire_seconds);
 
     private:
-        std::map<std::string, std::shared_ptr<DNSHostModel>> host_cache_;
-        mutable std::mutex cache_mutex_;
+        std::unordered_map<std::string, std::shared_ptr<DNSHostModel>> host_cache_;
+        mutable std::shared_mutex cache_mutex_;
         std::shared_ptr<DNSDataCache> data_cache_;
+        SpeedCheckCallback speed_check_callback_;
     };
 }
 

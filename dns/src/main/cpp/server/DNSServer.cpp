@@ -119,38 +119,90 @@ namespace dns {
     void DNSServer::resolve_async(const std::string &hostname, dns::TaskCallback callback) {
         Logger::log(LogLevel::INFO, "DNSServer", "异步解析: " + hostname);
 
-        auto task = std::make_shared<ResolveHostTask>(hostname, callback);
+        // 创建 ResolveHostTask，注入 perform_resolve 函数
+        auto resolve_func = [this](const std::string& host) {
+            return this->perform_resolve(host);
+        };
+
+        auto task = std::make_shared<ResolveHostTask>(hostname, callback, resolve_func);
         task_queue_->put(task);
     }
 
     std::shared_ptr<dns::DNSHostModel> DNSServer::perform_resolve(const std::string &hostname) {
         std::shared_ptr<DNSHostModel> best_result = nullptr;
-        std::vector<std::future<std::shared_ptr<DNSHostModel>>> futures;
+        std::atomic<bool> resolved{false};
+        std::mutex result_mutex;
+        std::vector<std::future<void>> futures;
 
-        for (auto pair: server_handlers_) {
-            auto handler = pair.second;
-            futures.push_back(std::async(std::launch::async, [handler, hostname]() {
-                return handler->resolve(hostname);
-            }));
-        }
-
-        for (auto& future: futures) {
-            try {
-                auto result = future.get();
-                if (result && result->has_valid_ip()) {
-                    best_result = result;
-                    break;
-                }
-            } catch (const std::exception& e) {
+        // Fixed: Copy handlers under lock to avoid race condition
+        std::vector<std::shared_ptr<DNSServerHandle>> handlers;
+        {
+            std::lock_guard<std::mutex> lock(handlers_mutex_);
+            for (auto& pair : server_handlers_) {
+                handlers.push_back(pair.second);
             }
         }
 
-        if (best_result && speed_checker_) {
-            auto ip_list = best_result->get_ip_list();
-            speed_checker_->check_multiple(ip_list);
-            best_result->sort_by_speed();
+        for (auto& handler : handlers) {
+            futures.push_back(std::async(std::launch::async, [&, handler]() {
+                if (resolved.load(std::memory_order_acquire)) {
+                    return;
+                }
 
-            host_manager_->update_host(best_result);
+                try {
+                    auto result = handler->resolve(hostname);
+                    if (result && result->has_valid_ip()) {
+                        std::lock_guard<std::mutex> lock(result_mutex);
+                        if (!resolved.load(std::memory_order_acquire)) {
+                            best_result = result;
+                            resolved.store(true, std::memory_order_release);
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    Logger::log(LogLevel::DEBUG, "DNSServer",
+                        "DNS解析异常: " + std::string(e.what()));
+                }
+            }));
+        }
+
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(Constants::RESOLVE_TIMEOUT_SECONDS);
+        while (!resolved.load(std::memory_order_acquire) &&
+               std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+
+        resolved.store(true, std::memory_order_release);
+
+        // Fixed: Use wait_for with timeout to avoid blocking indefinitely
+        for (auto& future : futures) {
+            if (future.valid()) {
+                future.wait_for(std::chrono::milliseconds(100));
+            }
+        }
+
+        if (best_result) {
+            if (speed_checker_) {
+                auto ip_list = best_result->get_ip_list();
+                speed_checker_->check_multiple(ip_list);
+                best_result->sort_by_speed();
+            }
+
+            if (host_manager_) {
+                host_manager_->update_host(best_result);
+            }
+
+            if (running_.load() && speed_checker_ && host_manager_) {
+                auto speed_task = std::make_shared<SpeedCheckTask>(
+                    hostname, best_result, speed_checker_, host_manager_, nullptr
+                );
+                speed_task->set_priority(3);
+                task_queue_->try_put(speed_task);
+            }
+        } else {
+            if (host_manager_) {
+                host_manager_->remove_host(hostname);
+                Logger::log(LogLevel::DEBUG, "DNSServer", "解析失败，移除缓存: " + hostname);
+            }
         }
 
         return best_result;
@@ -161,6 +213,7 @@ namespace dns {
                                       std::shared_ptr<dns::DNSServerHandle> handle) {
         if (handle) {
             handle->set_host_manager(host_manager_);
+            std::lock_guard<std::mutex> lock(handlers_mutex_);  // Fixed: add lock
             server_handlers_[type] = handle;
             Logger::log(LogLevel::INFO, "DNSServer",
                         "添加DNS处理器: " + std::to_string(static_cast<int>(type)));
@@ -168,6 +221,7 @@ namespace dns {
     }
 
     void DNSServer::remove_server_handle(dns::DNSServerType type) {
+        std::lock_guard<std::mutex> lock(handlers_mutex_);  // Fixed: add lock
         server_handlers_.erase(type);
     }
 
@@ -205,5 +259,58 @@ namespace dns {
         stats.queue_size = task_queue_->size();
         stats.thread_count = worker_threads_.size();
         return stats;
+    }
+
+    void DNSServer::submit_speed_check_task(
+            const std::string& hostname,
+            std::shared_ptr<DNSHostModel> host_model,
+            TaskCallback callback) {
+
+        if (!running_.load()) {
+            Logger::log(LogLevel::WARN, "DNSServer", "服务器未运行，无法提交速度检测任务");
+            return;
+        }
+
+        if (!host_model || !speed_checker_ || !host_manager_) {
+            Logger::log(LogLevel::ERROR, "DNSServer", "速度检测任务参数不完整");
+            return;
+        }
+
+        Logger::log(LogLevel::DEBUG, "DNSServer", "提交速度检测任务: " + hostname);
+
+        auto task = std::make_shared<SpeedCheckTask>(
+            hostname,
+            host_model,
+            speed_checker_,
+            host_manager_,
+            callback
+        );
+
+        task_queue_->try_put(task);
+    }
+
+    void DNSServer::submit_cache_update_task(
+            const std::string& hostname,
+            std::shared_ptr<DNSHostModel> host_model) {
+
+        if (!running_.load()) {
+            Logger::log(LogLevel::WARN, "DNSServer", "服务器未运行，无法提交缓存更新任务");
+            return;
+        }
+
+        if (!host_model || !host_manager_) {
+            Logger::log(LogLevel::ERROR, "DNSServer", "缓存更新任务参数不完整");
+            return;
+        }
+
+        Logger::log(LogLevel::DEBUG, "DNSServer", "提交缓存更新任务: " + hostname);
+
+        auto task = std::make_shared<CacheUpdateTask>(
+            hostname,
+            host_model,
+            host_manager_
+        );
+
+        task_queue_->try_put(task);
     }
 }

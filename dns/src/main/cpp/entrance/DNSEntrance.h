@@ -69,10 +69,16 @@ namespace dns {
 
         static std::shared_ptr<DNSEntrance> get_instance();
 
-        static clear_instance();
+        static void clear_instance();
 
     private:
         void init_dns_handlers();
+
+        void start_maintenance_thread();
+
+        void stop_maintenance_thread();
+
+        void maintenance_loop();
 
 
     private:
@@ -90,6 +96,11 @@ namespace dns {
         bool local_cache_enabled_;
 
         mutable std::mutex mutex_;
+
+        std::shared_ptr<std::thread> maintenance_thread_;
+        std::atomic<bool> maintenance_running_;
+        std::condition_variable maintenance_cv_;
+        std::mutex maintenance_mutex_;
 
         static std::shared_ptr<DNSEntrance> instance_;
         static std::mutex instance_mutex_;

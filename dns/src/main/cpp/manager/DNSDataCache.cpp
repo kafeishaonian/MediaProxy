@@ -12,14 +12,39 @@
 #include <dirent.h>
 #include <cstring>
 #include <ctype.h>
+#include <cerrno>
 
 
 namespace dns {
 
+    static bool create_directory_recursive(const std::string& path) {
+        if (path.empty()) {
+            return false;
+        }
+
+        struct stat st;
+        if (stat(path.c_str(), &st) == 0) {
+            return S_ISDIR(st.st_mode);
+        }
+
+        size_t pos = path.find_last_of('/');
+        if (pos != std::string::npos && pos > 0) {
+            std::string parent = path.substr(0, pos);
+            if (!create_directory_recursive(parent)) {
+                return false;
+            }
+        }
+
+        return mkdir(path.c_str(), 0755) == 0;
+    }
+
     DNSDataCache::DNSDataCache(size_t cache_size) : cache_dir_("/data/local/tmp/dns_cache") {
         memory_cache_ = std::make_unique<LRUCache<std::string, std::string>>(cache_size);
 
-        mkdir(cache_dir_.c_str(), 0755);
+        if (!create_directory_recursive(cache_dir_)) {
+            Logger::log(LogLevel::WARN, "DNSDataCache",
+                        "创建缓存目录失败: " + cache_dir_);
+        }
 
         Logger::log(LogLevel::INFO, "DNSDataCache",
                     "数据缓存已创建，大小: " + std::to_string(cache_size));
@@ -95,160 +120,6 @@ namespace dns {
         Logger::log(LogLevel::INFO, "DNSDataCache", "清空缓存");
     }
 
-    void DNSDataCache::save_to_disk(const std::string &filename) {
-        std::lock_guard<std::mutex> lock(file_mutex_);
-
-        std::ostringstream oss;
-        oss << "{\n";
-        oss << "  \"version\": \"1.0\",\n";
-
-        auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
-                now.time_since_epoch()
-        ).count();
-
-        oss << "  \"timestamp\": " << timestamp << ",\n";
-        oss << "  \"cache\": {\n";
-
-        bool first = true;
-        memory_cache_->for_each([&](const std::string &key, const std::string &value) {
-            if (!first) {
-                oss << ",\n";
-            }
-            first = false;
-
-            std::string escaped_key = escape_json_string(key);
-            std::string escaped_value = escape_json_string(value);
-
-            oss << "    \"" << escaped_key << "\": \"" << escaped_value << "\"";
-        });
-        oss << "\n  }\n";
-        oss << "}\n";
-
-        std::string full_path = cache_dir_ + "/" + filename;
-        std::ofstream file(full_path, std::ios::binary | std::ios::trunc);
-        if (!file.is_open()) {
-            Logger::log(LogLevel::ERROR, "DNSDataCache",
-                        "无法创建文件: " + full_path);
-            return;
-        }
-        file << oss.str();
-        file.close();
-
-        Logger::log(LogLevel::INFO, "DNSDataCache",
-                    "保存缓存到文件: " + filename);
-    }
-
-    void DNSDataCache::load_from_disk(const std::string &filename) {
-        std::lock_guard<std::mutex> lock(file_mutex_);
-        std::string full_path = cache_dir_ + "/" + filename;
-        std::ifstream file(full_path, std::ios::binary);
-        if (!file.is_open()) {
-            Logger::log(LogLevel::WARN, "DNSDataCache",
-                        "无法打开文件: " + full_path);
-            return;
-        }
-
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        file.close();
-        std::string json = buffer.str();
-
-        size_t cache_pos = json.find("\"cache\":");
-        if (cache_pos == std::string::npos) {
-            Logger::log(LogLevel::ERROR, "DNSDataCache",
-                        "JSON格式错误：找不到cache字段");
-            return;
-        }
-
-        size_t obj_start = json.find('{', cache_pos);
-        if (obj_start == std::string::npos) {
-            Logger::log(LogLevel::ERROR, "DNSDataCache",
-                        "JSON格式错误：cache对象格式错误");
-            return;
-        }
-
-        int brace_count = 0;
-        size_t obj_end = obj_start;
-        while (obj_end < json.length()) {
-            if (json[obj_end] == '{') {
-                brace_count++;
-            } else if (json[obj_end] == '}') {
-                brace_count--;
-                if (brace_count == 0) {
-                    break;
-                }
-            }
-            obj_end++;
-        }
-
-        if (brace_count != 0) {
-            Logger::log(LogLevel::ERROR, "DNSDataCache",
-                        "JSON格式错误：括号不匹配");
-            return;
-        }
-
-        int loaded_count = 0;
-        size_t pos = obj_start + 1;
-
-        while (pos < obj_end) {
-            while (pos < obj_end && std::isspace(json[pos])) {
-                pos++;
-            }
-            if (pos >= obj_end || json[pos] == '}') {
-                break;
-            }
-
-            if (json[pos] != '\"') {
-                pos++;
-                continue;
-            }
-
-            size_t key_start = pos + 1;
-            size_t key_end = json.find('\"', key_start);
-            if (key_end == std::string::npos) {
-                break;
-            }
-
-            std::string key = unescape_json_string(
-                    json.substr(key_start, key_end - key_start));
-
-            pos = json.find(':', key_end);
-            if (pos == std::string::npos) {
-                break;
-            }
-            pos++;
-
-            while (pos < obj_end && std::isspace(json[pos])) {
-                pos++;
-            }
-
-            if (json[pos] != '\"') {
-                pos++;
-                continue;
-            }
-
-            size_t value_start = pos + 1;
-            size_t value_end = json.find('\"', value_start);
-            if (value_end == std::string::npos) {
-                break;
-            }
-
-            std::string value = unescape_json_string(
-                    json.substr(value_start, value_end - value_start));
-
-            memory_cache_->put(key, value);
-            loaded_count++;
-
-            pos = value_end + 1;
-            while (pos < obj_end && (json[pos] == ',' || std::isspace(json[pos]))) {
-                pos++;
-            }
-        }
-        Logger::log(LogLevel::INFO, "DNSDataCache",
-                    "从文件加载缓存: " + filename);
-    }
-
     size_t DNSDataCache::get_cache_size() const {
         return memory_cache_->size();
     }
@@ -256,6 +127,13 @@ namespace dns {
 
     void DNSDataCache::set_cache_dir(const std::string &dir) {
         cache_dir_ = dir;
+        if (!create_directory_recursive(cache_dir_)) {
+            Logger::log(LogLevel::WARN, "DNSDataCache",
+                        "创建缓存目录失败: " + cache_dir_);
+        } else {
+            Logger::log(LogLevel::INFO, "DNSDataCache",
+                        "缓存目录已设置: " + cache_dir_);
+        }
     }
 
     std::string DNSDataCache::get_cache_file_path(const std::string &key) const {
@@ -277,9 +155,16 @@ namespace dns {
         try {
             std::ofstream file(file_path, std::ios::binary);
             if (!file.is_open()) {
+                Logger::log(LogLevel::ERROR, "DNSDataCache",
+                            "无法打开文件: " + file_path + " (errno: " + std::to_string(errno) + ")");
                 return false;
             }
             file.write(data.c_str(), data.size());
+            if (!file.good()) {
+                Logger::log(LogLevel::ERROR, "DNSDataCache",
+                            "写入数据失败: " + file_path);
+                return false;
+            }
             file.close();
 
             return true;

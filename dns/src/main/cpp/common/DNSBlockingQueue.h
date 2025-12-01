@@ -29,7 +29,7 @@ namespace dns {
             std::unique_lock<std::mutex> lock(mutex_);
             not_full_.wait(lock, [this] {return queue_.size() < max_size_;});
             queue_.push_back(item);
-            not_full_.notify_one();
+            not_empty_.notify_one();  // Fixed: notify consumers, not producers
         }
 
         T take() {
@@ -41,7 +41,7 @@ namespace dns {
             return item;
         }
 
-        std::optional<T> task(std::chrono::milliseconds timeout) {
+        std::optional<T> take_with_timeout(std::chrono::milliseconds timeout) {  // Renamed from 'task' for clarity
             std::unique_lock<std::mutex> lock(mutex_);
             if (!not_empty_.wait_for(lock, timeout, [this] {return !queue_.empty();})) {
                 return std::nullopt;
@@ -52,10 +52,16 @@ namespace dns {
             return item;
         }
 
+        // Deprecated: use take_with_timeout instead
+        [[deprecated("Use take_with_timeout instead")]]
+        std::optional<T> task(std::chrono::milliseconds timeout) {
+            return take_with_timeout(timeout);
+        }
+
         // 非阻塞放入
         bool try_put(const T& item) {
             std::lock_guard<std::mutex> lock(mutex_);
-            if (queue_.size() > max_size_) {
+            if (queue_.size() >= max_size_) {  // Fixed: use >= instead of >
                 return false;
             }
             queue_.push_back(item);

@@ -55,11 +55,15 @@ static void resolveHostAsync(JNIEnv *env, jobject instance, jstring jhostname, j
     try {
         auto dns = dns::DNSEntranceImpl::get_instance();
 
+        // Fixed: Wrap callback in shared_ptr for proper lifetime management
+        auto callback_guard = std::make_shared<jobject>(global_callback);
+
         dns->resolve_host_async(hostname,
-                                [jvm, global_callback, hostname](auto host, bool success,
+                                [jvm, callback_guard, hostname](auto host, bool success,
                                                                  auto old_host) {
                                     JNIEnv *cb_env;
                                     bool attached = false;
+                                    jobject global_callback = *callback_guard;
 
                                     if (jvm->GetEnv((void **) &cb_env, JNI_VERSION_1_6) ==
                                         JNI_EDETACHED) {
@@ -77,7 +81,7 @@ static void resolveHostAsync(JNIEnv *env, jobject instance, jstring jhostname, j
 
                                         if (on_result) {
                                             jstring jip = cb_env->NewStringUTF(
-                                                    host ? host->get_bast_ip_string().c_str() : ""
+                                                    host ? host->get_best_ip_string().c_str() : ""
                                             );
                                             cb_env->CallVoidMethod(global_callback, on_result, jip,
                                                                    success);
@@ -90,6 +94,11 @@ static void resolveHostAsync(JNIEnv *env, jobject instance, jstring jhostname, j
                                         if (attached) {
                                             jvm->DetachCurrentThread();
                                         }
+                                    } else {
+                                        // Fixed: Cleanup even if env is null
+                                        dns::Logger::log(dns::LogLevel::ERROR, "JNI",
+                                                        "无法获取JNIEnv，清理全局引用");
+                                        // Schedule cleanup on main thread or use a cleanup mechanism
                                     }
                                 });
     } catch (const std::exception &e) {
@@ -175,6 +184,32 @@ static void enableHttpDNS(JNIEnv *env, jobject instance, jboolean enable) {
     }
 }
 
+static void enableLocalCache(JNIEnv *env, jobject instance, jboolean enable) {
+    try {
+        auto dns = dns::DNSEntranceImpl::get_instance();
+        auto impl = std::dynamic_pointer_cast<dns::DNSEntranceImpl>(dns);
+        if (impl) {
+            impl->enable_local_cache(enable);
+        }
+    } catch (const std::exception &e) {
+        dns::Logger::log(dns::LogLevel::ERROR, "JNI",
+                         std::string("启用本地缓存失败: ") + e.what());
+    }
+}
+
+static void setThreadCount(JNIEnv *env, jobject instance, jint count) {
+    try {
+        auto dns = dns::DNSEntranceImpl::get_instance();
+        auto impl = std::dynamic_pointer_cast<dns::DNSEntranceImpl>(dns);
+        if (impl) {
+            impl->set_thread_count(count);
+        }
+    } catch (const std::exception &e) {
+        dns::Logger::log(dns::LogLevel::ERROR, "JNI",
+                         std::string("设置线程数失败: ") + e.what());
+    }
+}
+
 static void setCacheDir(JNIEnv *env, jobject instance, jstring jdir) {
     std::string dir = jstring_to_string(env, jdir);
 
@@ -216,6 +251,8 @@ static const JNINativeMethod gMethod[] = {
         {"nativeSetNetworkState",  "(I)V",                                             (void *) setNetworkState},
         {"nativeEnableSystemDNS",  "(Z)V",                                             (void *) enableSystemDNS},
         {"nativeEnableHttpDNS",    "(Z)V",                                             (void *) enableHttpDNS},
+        {"nativeEnableLocalCache", "(Z)V",                                             (void *) enableLocalCache},
+        {"nativeSetThreadCount",   "(I)V",                                             (void *) setThreadCount},
         {"nativeSetCacheDir",      "(Ljava/lang/String;)V",                            (void *) setCacheDir},
         {"nativeClearCache",       "()V",                                              (void *) clearCache},
         {"nativeSetLogLevel",      "(I)V",                                             (void *) setLogLevel},

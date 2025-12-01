@@ -110,13 +110,11 @@ namespace dns {
 
     std::vector<std::string> DNSHttpClient::extract_ips_from_json(const std::string &json) {
         std::vector<std::string> ips;
-
         size_t pos = 0;
         const std::string data_key = "\"data\"";
 
         while ((pos = json.find(data_key, pos)) != std::string::npos) {
             pos += data_key.length();
-
             while (pos < json.length() && (json[pos] == ' ' || json[pos] == ':')) {
                 pos++;
             }
@@ -126,9 +124,7 @@ namespace dns {
                 size_t end_pos = json.find('"', pos);
                 if (end_pos != std::string::npos) {
                     std::string value = json.substr(pos, end_pos - pos);
-
-                    if (value.find('.') != std::string::npos ||
-                        value.find(':' != std::string::npos)) {
+                    if (value.find('.') != std::string::npos || value.find(':' != std::string::npos)) {
                         ips.push_back(value);
                         Logger::log(LogLevel::DEBUG, "HttpClient", "提取IP: " + value);
                     }
@@ -153,17 +149,14 @@ namespace dns {
                        (json_response[num_start] == ' ' || json_response[num_start] == '\t')) {
                     num_start++;
                 }
-
                 if (num_start < json_response.length() && json_response[num_start] != '0') {
                     Logger::log(LogLevel::WARN, "HttpClient", "DoH响应状态不等于0");
                 }
             }
         }
+
         auto ips = extract_ips_from_json(json_response);
-
-        Logger::log(LogLevel::INFO, "HttpClient",
-                    "解析DOH的IP地址： " + std::to_string(ips.size()));
-
+        Logger::log(LogLevel::INFO, "HttpClient", "解析DOH的IP地址： " + std::to_string(ips.size()));
         return ips;
     }
 

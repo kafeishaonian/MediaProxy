@@ -6,6 +6,9 @@
 
 #include <sstream>
 #include <chrono>
+#include <document.h>
+#include <writer.h>
+#include <stringbuffer.h>
 
 namespace dns {
 
@@ -77,11 +80,7 @@ namespace dns {
     }
 
     std::string DNSIPModel::get_ipv6_compressed() const {
-        if (!is_ipv6()) {
-            return ip_;
-        }
-
-        if (ip_.find("::") != std::string::npos) {
+        if (!is_ipv6() || ip_.find("::") != std::string::npos) {
             return ip_;
         }
 
@@ -97,18 +96,14 @@ namespace dns {
             return ip_;
         }
 
-        //去掉每段的前导0，但至少保留一个字符
         for (auto &seg: segments) {
             while (seg.length() > 1 && seg[0] == '0') {
                 seg = seg.substr(1);
             }
         }
 
-        //找到最长的连续0段序列
-        int max_zero_start = -1;
-        int max_zero_len = 0;
-        int curr_zero_start = -1;
-        int curr_zero_len = 0;
+        int max_zero_start = -1, max_zero_len = 0;
+        int curr_zero_start = -1, curr_zero_len = 0;
 
         for (int i = 0; i < 8; i++) {
             if (segments[i] == "0") {
@@ -128,37 +123,27 @@ namespace dns {
             }
         }
 
-        // 检查最后一个0序列
         if (curr_zero_len > max_zero_len) {
             max_zero_start = curr_zero_start;
             max_zero_len = curr_zero_len;
         }
 
-        //构建压缩后的地址
         std::ostringstream result;
-
-        // 只有当连续0的长度大于1时才进行压缩
         if (max_zero_len > 1) {
             for (int i = 0; i < 8; i++) {
                 if (i == max_zero_start) {
-                    // 压缩区域的起始位置
                     result << "::";
-                    // 跳过整个压缩区域
                     i += max_zero_len - 1;
                 } else {
-                    // 非压缩区域
                     if (i > 0 && i > max_zero_start + max_zero_len) {
-                        // 在压缩区域之后需要添加分隔符
                         result << ":";
                     } else if (i > 0 && i < max_zero_start) {
-                        // 在压缩区域之前需要添加分隔符
                         result << ":";
                     }
                     result << segments[i];
                 }
             }
         } else {
-            // 不需要压缩，只是去掉了前导0
             for (int i = 0; i < 8; i++) {
                 if (i > 0) result << ":";
                 result << segments[i];
@@ -234,86 +219,55 @@ namespace dns {
     }
 
     std::string DNSIPModel::to_json() const {
-        std::ostringstream oss;
-        oss << "{"
-                << "\"ip\":\"" << ip_ << "\","
-                << "\"port\":" << port_ << ","
-                << "\"speed\":" << speed_ << ","
-                << "\"timestamp\":" << timestamp_ << ","
-                << "\"valid\":" << (is_valid_ ? "true" : "false")
-                << "}";
-        return oss.str();
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto& allocator = doc.GetAllocator();
+
+        doc.AddMember("ip", rapidjson::Value(ip_.c_str(), allocator), allocator);
+        doc.AddMember("port", port_, allocator);
+        doc.AddMember("speed", speed_, allocator);
+        doc.AddMember("timestamp", timestamp_, allocator);
+        doc.AddMember("valid", is_valid_, allocator);
+
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+        return buffer.GetString();
     }
 
     std::shared_ptr<dns::DNSIPModel> DNSIPModel::from_json(const std::string &json) {
+        rapidjson::Document doc;
+        if (doc.Parse(json.c_str()).HasParseError()) {
+            return nullptr;
+        }
+
         auto model = std::make_shared<DNSIPModel>();
 
-        // 解析 ip
-        size_t ip_pos = json.find("\"ip\":\"");
-        if (ip_pos != std::string::npos) {
-            size_t start = ip_pos + 6;
-            size_t end = json.find("\"", start);
-            if (end != std::string::npos) {
-                model->ip_ = json.substr(start, end - start);
-                model->detect_ip_version();
-            }
+        if (doc.HasMember("ip") && doc["ip"].IsString()) {
+            model->ip_ = doc["ip"].GetString();
+            model->detect_ip_version();
         }
 
-        // 解析 port
-        size_t port_pos = json.find("\"port\":");
-        if (port_pos != std::string::npos) {
-            size_t start = port_pos + 7;
-            size_t end = json.find_first_of(",}", start);
-            if (end != std::string::npos) {
-                try {
-                    model->port_ = std::stoi(json.substr(start, end - start));
-                } catch (...) {
-                }
-            }
+        if (doc.HasMember("port") && doc["port"].IsInt()) {
+            model->port_ = doc["port"].GetInt();
         }
 
-        // 解析 speed
-        size_t speed_pos = json.find("\"speed\":");
-        if (speed_pos != std::string::npos) {
-            size_t start = speed_pos + 8;
-            size_t end = json.find_first_of(",}", start);
-            if (end != std::string::npos) {
-                try {
-                    model->speed_ = std::stoi(json.substr(start, end - start));
-                } catch (...) {
-                }
-            }
+        if (doc.HasMember("speed") && doc["speed"].IsInt()) {
+            model->speed_ = doc["speed"].GetInt();
         }
 
-        // 解析 timestamp
-        size_t timestamp_pos = json.find("\"timestamp\":");
-        if (timestamp_pos != std::string::npos) {
-            size_t start = timestamp_pos + 12;
-            size_t end = json.find_first_of(",}", start);
-            if (end != std::string::npos) {
-                try {
-                    model->timestamp_ = std::stol(json.substr(start, end - start));
-                } catch (...) {
-                }
-            }
+        if (doc.HasMember("timestamp") && doc["timestamp"].IsInt64()) {
+            model->timestamp_ = doc["timestamp"].GetInt64();
         }
 
-        // 解析 valid
-        size_t valid_pos = json.find("\"valid\":");
-        if (valid_pos != std::string::npos) {
-            size_t start = valid_pos + 8;
-            if (json.substr(start, 4) == "true") {
-                model->is_valid_ = true;
-            } else if (json.substr(start, 5) == "false") {
-                model->is_valid_ = false;
-            }
+        if (doc.HasMember("valid") && doc["valid"].IsBool()) {
+            model->is_valid_ = doc["valid"].GetBool();
         }
 
         return model;
     }
 
-    //重写比较运算符用于排序
-    bool DNSIPModel::operator<(const dns::DNSIPModel &other) {
+    bool DNSIPModel::operator<(const dns::DNSIPModel &other) const {
         return speed_ < other.speed_;
     }
 }

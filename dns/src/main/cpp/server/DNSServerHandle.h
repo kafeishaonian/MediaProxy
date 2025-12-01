@@ -9,7 +9,6 @@
 
 #include "DNSCommon.h"
 #include "DNSHostModel.h"
-#include "DNSServer.h"
 #include "DNSHttpClient.h"
 
 namespace dns {
@@ -51,7 +50,7 @@ namespace dns {
 
     class DNSHttpServerHandle : public DNSServerHandle {
     public:
-        explicit DNSHttpServerHandle(std::string &doh_server);
+        explicit DNSHttpServerHandle(const std::string &doh_server);
 
         ~DNSHttpServerHandle() override = default;
 

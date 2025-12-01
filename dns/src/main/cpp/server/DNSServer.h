@@ -59,6 +59,19 @@ namespace dns {
 
         ServerStats get_stats() const;
 
+        // 提交速度检测任务
+        void submit_speed_check_task(
+            const std::string& hostname,
+            std::shared_ptr<DNSHostModel> host_model,
+            TaskCallback callback = nullptr
+        );
+
+        // 提交缓存更新任务
+        void submit_cache_update_task(
+            const std::string& hostname,
+            std::shared_ptr<DNSHostModel> host_model
+        );
+
     private:
         void worker_loop();
 
@@ -73,6 +86,7 @@ namespace dns {
     private:
 
         std::map<DNSServerType, std::shared_ptr<DNSServerHandle>> server_handlers_;
+        mutable std::mutex handlers_mutex_;  // Added: protect server_handlers_
 
         std::shared_ptr<DNSBlockingQueue<std::shared_ptr<DNSServerTask>>> task_queue_;
 

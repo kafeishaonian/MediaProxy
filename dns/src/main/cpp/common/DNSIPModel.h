@@ -61,7 +61,7 @@ namespace dns {
 
         static std::shared_ptr<DNSIPModel> from_json(const std::string& json);
 
-        bool operator<(const DNSIPModel& other)> const;
+        bool operator<(const DNSIPModel& other) const;
 
     private:
         void detect_ip_version();

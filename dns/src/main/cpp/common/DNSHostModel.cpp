@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <sstream>
 #include <chrono>
+#include <document.h>
+#include <writer.h>
+#include <stringbuffer.h>
 
 namespace dns {
     DNSHostModel::DNSHostModel()
@@ -66,12 +69,11 @@ namespace dns {
         return !ip_list_.empty() && ip_list_[0]->is_valid();
     }
 
-    std::shared_ptr<dns::DNSIPModel> DNSHostModel::get_bast_ip() const {
+    std::shared_ptr<dns::DNSIPModel> DNSHostModel::get_best_ip() const {
         if (ip_list_.empty()) {
             return nullptr;
         }
 
-        //返回最快的ip
         for (const auto &ip: ip_list_) {
             if (ip->is_valid() && ip->get_speed() >= 0) {
                 return ip;
@@ -82,9 +84,9 @@ namespace dns {
     }
 
 
-    std::string DNSHostModel::get_bast_ip_string() const {
-        auto bast_ip = get_bast_ip();
-        return bast_ip ? bast_ip->get_ip() : "";
+    std::string DNSHostModel::get_best_ip_string() const {
+        auto best_ip = get_best_ip();
+        return best_ip ? best_ip->get_ip() : "";
     }
 
     void DNSHostModel::sort_by_speed() {
@@ -112,103 +114,63 @@ namespace dns {
     }
 
     std::string DNSHostModel::to_json() const {
-        std::ostringstream oss;
-        oss << "{"
-            << "\"hostname\":\"" << hostname_ << "\","
-            << "\"update_time\":" << update_time_ << ","
-            << "\"server_type\":" << static_cast<int>(server_type_) << ","
-            << "\"ip_list\":[";
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto& allocator = doc.GetAllocator();
 
-        for (size_t i = 0; i < ip_list_.size(); ++i) {
-            if (i > 0) oss << ",";
-            oss << ip_list_[i]->to_json();
+        doc.AddMember("hostname", rapidjson::Value(hostname_.c_str(), allocator), allocator);
+        doc.AddMember("update_time", update_time_, allocator);
+        doc.AddMember("server_type", static_cast<int>(server_type_), allocator);
+
+        rapidjson::Value ip_array(rapidjson::kArrayType);
+        for (const auto& ip : ip_list_) {
+            rapidjson::Document ip_doc;
+            ip_doc.Parse(ip->to_json().c_str());
+            rapidjson::Value ip_val(ip_doc, allocator);
+            ip_array.PushBack(ip_val, allocator);
         }
+        doc.AddMember("ip_list", ip_array, allocator);
 
-        oss << "]}";
-        return oss.str();
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+        return buffer.GetString();
     }
 
     std::shared_ptr<dns::DNSHostModel> DNSHostModel::from_json(const std::string &json) {
+        rapidjson::Document doc;
+        if (doc.Parse(json.c_str()).HasParseError()) {
+            return nullptr;
+        }
+
         auto model = std::make_shared<DNSHostModel>();
-        
-        // 解析 hostname
-        size_t hostname_pos = json.find("\"hostname\":\"");
-        if (hostname_pos != std::string::npos) {
-            size_t start = hostname_pos + 12;
-            size_t end = json.find("\"", start);
-            if (end != std::string::npos) {
-                model->hostname_ = json.substr(start, end - start);
-            }
+
+        if (doc.HasMember("hostname") && doc["hostname"].IsString()) {
+            model->hostname_ = doc["hostname"].GetString();
         }
 
-        // 解析 update_time
-        size_t update_time_pos = json.find("\"update_time\":");
-        if (update_time_pos != std::string::npos) {
-            size_t start = update_time_pos + 14;
-            size_t end = json.find_first_of(",}", start);
-            if (end != std::string::npos) {
-                try {
-                    model->update_time_ = std::stol(json.substr(start, end - start));
-                } catch (...) {
+        if (doc.HasMember("update_time") && doc["update_time"].IsInt64()) {
+            model->update_time_ = doc["update_time"].GetInt64();
+        }
+
+        if (doc.HasMember("server_type") && doc["server_type"].IsInt()) {
+            model->server_type_ = static_cast<DNSServerType>(doc["server_type"].GetInt());
+        }
+
+        if (doc.HasMember("ip_list") && doc["ip_list"].IsArray()) {
+            const auto& ip_array = doc["ip_list"].GetArray();
+            for (const auto& ip_json : ip_array) {
+                rapidjson::StringBuffer buffer;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+                ip_json.Accept(writer);
+
+                auto ip_model = DNSIPModel::from_json(buffer.GetString());
+                if (ip_model) {
+                    model->ip_list_.push_back(ip_model);
                 }
             }
         }
 
-        // 解析 server_type
-        size_t server_type_pos = json.find("\"server_type\":");
-        if (server_type_pos != std::string::npos) {
-            size_t start = server_type_pos + 14;
-            size_t end = json.find_first_of(",}", start);
-            if (end != std::string::npos) {
-                try {
-                    int type_value = std::stoi(json.substr(start, end - start));
-                    model->server_type_ = static_cast<DNSServerType>(type_value);
-                } catch (...) {
-                }
-            }
-        }
-
-        // 解析 ip_list 数组
-        size_t ip_list_pos = json.find("\"ip_list\":[");
-        if (ip_list_pos != std::string::npos) {
-            size_t array_start = ip_list_pos + 11;
-            size_t array_end = json.find("]", array_start);
-            
-            if (array_end != std::string::npos) {
-                std::string ip_list_str = json.substr(array_start, array_end - array_start);
-                
-                // 解析数组中的每个 JSON 对象
-                size_t pos = 0;
-                int brace_count = 0;
-                size_t obj_start = std::string::npos;
-                
-                while (pos < ip_list_str.length()) {
-                    char ch = ip_list_str[pos];
-                    
-                    if (ch == '{') {
-                        if (brace_count == 0) {
-                            obj_start = pos;
-                        }
-                        brace_count++;
-                    } else if (ch == '}') {
-                        brace_count--;
-                        if (brace_count == 0 && obj_start != std::string::npos) {
-                            std::string ip_json = ip_list_str.substr(obj_start, pos - obj_start + 1);
-                            
-                            try {
-                                auto ip_model = DNSIPModel::from_json(ip_json);
-                                if (ip_model) {
-                                    model->ip_list_.push_back(ip_model);
-                                }
-                            } catch (...) {
-                            }
-                            obj_start = std::string::npos;
-                        }
-                    }
-                    pos++;
-                }
-            }
-        }
         return model;
     }
 }

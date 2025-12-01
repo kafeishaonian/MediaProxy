@@ -64,7 +64,6 @@ find_library(ZLIB_LIB z)
 target_link_options(dns_cache PRIVATE "-Wl,-z,max-page-size=16384")
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-        my_native_lib
         android
         log
         crypto

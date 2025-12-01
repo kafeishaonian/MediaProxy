@@ -2,6 +2,7 @@ package com.dns.cache
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -168,16 +169,38 @@ fun DNSManager.resolveWithMonitoring(
 
 
 /**
- * 预加载常用域名
+ * 预加载常用域名（并发）
  */
 fun DNSManager.preloadDomains(
     domains: List<String>,
     scope: CoroutineScope
 ) {
     scope.launch(Dispatchers.IO) {
-        domains.forEach { domain ->
-            resolveHost(domain) // 触发缓存
-        }
+        domains.map { domain ->
+            async {
+                resolveHost(domain)
+            }
+        }.forEach { it.await() }
+    }
+}
+
+/**
+ * 预加载常用域名（并发 + 回调）
+ */
+fun DNSManager.preloadDomainsWithCallback(
+    domains: List<String>,
+    scope: CoroutineScope,
+    onEachComplete: (domain: String, ip: String, success: Boolean) -> Unit
+) {
+    scope.launch(Dispatchers.IO) {
+        domains.map { domain ->
+            async {
+                val ip = resolveHost(domain)
+                val success = ip.isNotEmpty()
+                onEachComplete(domain, ip, success)
+                Pair(domain, ip)
+            }
+        }.forEach { it.await() }
     }
 }
 

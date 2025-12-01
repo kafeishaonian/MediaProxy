@@ -9,6 +9,8 @@
 #include <cstring>
 #include <sstream>
 #include <chrono>
+#include <future>
+#include <atomic>
 
 #include "DNSHostManager.h"
 
@@ -55,7 +57,6 @@ namespace dns {
 
     bool DNSSystemServerHandle::resolve_with_get_addr_info(const std::string &hostname,
                                                            std::vector<std::string> &ip_list) {
-
         struct addrinfo hints;
         struct addrinfo *result = nullptr;
 
@@ -94,7 +95,7 @@ namespace dns {
     }
 
 
-    DNSHttpServerHandle::DNSHttpServerHandle(std::string &doh_server)
+    DNSHttpServerHandle::DNSHttpServerHandle(const std::string &doh_server)
             : DNSServerHandle(DNSServerType::HTTP_DNS),
               doh_server_(doh_server),
               http_client_(std::make_shared<DNSHttpClient>()) {
@@ -131,12 +132,23 @@ namespace dns {
         }
         Logger::log(LogLevel::INFO, "DNSHttpServerHandle", "发送DoH请求: " + hostname);
 
-        std::string response = http_client_->send_doh_request(doh_server_, hostname, "A");
+        std::string response_v4, response_v6;
+        std::atomic<bool> v4_done{false}, v6_done{false};
 
-        // 如果启用IPv6，也尝试AAAA记录
-        // TODO: 可以并行查询A和AAAA记录
+        auto future_v4 = std::async(std::launch::async, [&]() {
+            response_v4 = http_client_->send_doh_request(doh_server_, hostname, "A");
+            v4_done.store(true);
+        });
 
-        return response;
+        auto future_v6 = std::async(std::launch::async, [&]() {
+            response_v6 = http_client_->send_doh_request(doh_server_, hostname, "AAAA");
+            v6_done.store(true);
+        });
+
+        future_v4.wait_for(std::chrono::seconds(3));
+        future_v6.wait_for(std::chrono::seconds(3));
+
+        return !response_v4.empty() ? response_v4 : response_v6;
     }
 
     std::shared_ptr<dns::DNSHostModel>
@@ -182,12 +194,10 @@ namespace dns {
 
     std::shared_ptr<dns::DNSHostModel> DNSLocalServerHandle::resolve(const std::string &hostname) {
         std::lock_guard<std::mutex> lock(cache_mutex_);
-
         auto it = cache_.find(hostname);
 
         if (it != cache_.end()) {
             auto host = it->second;
-
             if (!is_cache_expired(host)) {
                 Logger::log(LogLevel::DEBUG, "DNSLocalServerHandle", "缓存命中: " + hostname);
                 return host;
@@ -198,7 +208,6 @@ namespace dns {
         }
 
         Logger::log(LogLevel::DEBUG, "DNSLocalServerHandle", "缓存未命中: " + hostname);
-
         return nullptr;
     }
 
@@ -207,13 +216,10 @@ namespace dns {
         if (!host) {
             return;
         }
-
         std::lock_guard<std::mutex> lock(cache_mutex_);
         cache_[hostname] = host;
-
         Logger::log(LogLevel::DEBUG, "DNSLocalServerHandle", "添加到缓存: " + hostname);
     }
-
 
     void DNSLocalServerHandle::remove_from_cache(const std::string &hostname) {
         std::lock_guard<std::mutex> lock(cache_mutex_);

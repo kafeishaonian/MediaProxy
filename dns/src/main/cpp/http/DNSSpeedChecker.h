@@ -9,6 +9,8 @@
 #include "DNSIPModel.h"
 #include "DNSSocket.h"
 #include "Ping.h"
+#include <optional>
+#include <mutex>
 
 namespace dns {
     class DNSSpeedChecker{
@@ -30,11 +32,15 @@ namespace dns {
 
     private:
         int check_speed_with_socket(const std::string& ip, int port);
+        std::optional<int> get_cached_speed(const std::string& ip);
+        void cache_speed(const std::string& ip, int speed);
 
     private:
         int timeout_;
         int retry_count_;
         std::shared_ptr<Ping> pinger_;
+        std::unordered_map<std::string, std::pair<int, time_t>> speed_cache_;
+        std::mutex cache_mutex_;
 
     };
 }

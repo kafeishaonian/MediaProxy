@@ -91,6 +91,20 @@ object DNSManager{
     }
 
     /**
+     * 启用/禁用本地缓存
+     */
+    fun enableLocalCache(enable: Boolean) {
+        nativeEnableLocalCache(enable)
+    }
+
+    /**
+     * 设置工作线程数
+     */
+    fun setThreadCount(count: Int) {
+        nativeSetThreadCount(count)
+    }
+
+    /**
      * 清空所有缓存
      */
     fun clearCache() {
@@ -151,6 +165,16 @@ object DNSManager{
     private external fun nativeEnableHttpDNS(enable: Boolean)
 
     /**
+     * 启用/禁用本地缓存
+     */
+    private external fun nativeEnableLocalCache(enable: Boolean)
+
+    /**
+     * 设置工作线程数
+     */
+    private external fun nativeSetThreadCount(count: Int)
+
+    /**
      * 设置缓存目录
      */
     private external fun nativeSetCacheDir(dir: String)
@@ -183,10 +207,8 @@ interface DNSCallback {
 enum class NetworkState(val value: Int) {
     UNKNOWN(0),
     WIFI(1),
-    MOBILE_2G(2),
-    MOBILE_3G(3),
-    MOBILE_4G(4),
-    MOBILE_5G(5)
+    MOBILE(2),
+    NONE(3)
 }
 
 /**

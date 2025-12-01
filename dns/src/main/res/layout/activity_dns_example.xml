@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DNS解析测试"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <EditText
+            android:id="@+id/etHostname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="输入域名 (例如: www.google.com)"
+            android:inputType="textUri"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnResolveSync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="同步解析"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnResolveAsync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="异步解析"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnResolveCoroutine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="协程解析"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnGetAllIPs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="获取所有IP"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnPreload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="预解析"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnClearCache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="清空缓存"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="解析结果："
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="等待解析..."
+            android:textSize="14sp"
+            android:background="#F0F0F0"
+            android:padding="12dp"
+            android:minHeight="100dp"/>
+
+    </LinearLayout>
+
+</ScrollView>
+

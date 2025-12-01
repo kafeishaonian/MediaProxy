@@ -10,6 +10,10 @@
 
 namespace dns {
 
+    class DNSHostManager;
+    class DNSSpeedChecker;
+    class DNSServer;
+
     using TaskCallback = std::function<void(std::shared_ptr<DNSHostModel>, bool,
                                             std::shared_ptr<DNSHostModel>)>;
 
@@ -51,9 +55,16 @@ namespace dns {
 
     class ResolveHostTask : public DNSServerTask {
     public:
-        ResolveHostTask(const std::string &hostname, TaskCallback callback = nullptr);
+        ResolveHostTask(
+                const std::string &hostname,
+                TaskCallback callback,
+                std::function<std::shared_ptr<DNSHostModel>(const std::string&)> resolve_func
+        );
 
         void execute() override;
+
+    private:
+        std::function<std::shared_ptr<DNSHostModel>(const std::string&)> resolve_func_;
     };
 
     class SpeedCheckTask : public DNSServerTask {
@@ -61,6 +72,8 @@ namespace dns {
         SpeedCheckTask(
                 const std::string &hostname,
                 std::shared_ptr<DNSHostModel> host_model,
+                std::shared_ptr<DNSSpeedChecker> speed_checker,
+                std::shared_ptr<DNSHostManager> host_manager,
                 TaskCallback callback = nullptr
         );
 
@@ -68,19 +81,23 @@ namespace dns {
 
     private:
         std::shared_ptr<DNSHostModel> host_model_;
+        std::shared_ptr<DNSSpeedChecker> speed_checker_;
+        std::shared_ptr<DNSHostManager> host_manager_;
     };
 
     class CacheUpdateTask : public DNSServerTask {
     public:
         CacheUpdateTask(
                 const std::string &hostname,
-                std::shared_ptr<DNSHostModel> host_mode
+                std::shared_ptr<DNSHostModel> host_model,
+                std::shared_ptr<DNSHostManager> host_manager
         );
 
         void execute() override;
 
     private:
         std::shared_ptr<DNSHostModel> host_model_;
+        std::shared_ptr<DNSHostManager> host_manager_;
     };
 }
 

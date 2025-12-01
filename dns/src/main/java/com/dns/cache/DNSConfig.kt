@@ -21,6 +21,11 @@ class DNSConfig {
     var enableHttpDNS: Boolean = true
 
     /**
+     * 是否启用本地缓存
+     */
+    var enableLocalCache: Boolean = true
+
+    /**
      * 缓存过期时间（秒）
      */
     var cacheExpireTime: Int = 3600
@@ -50,6 +55,8 @@ fun DNSManager.configure(block: DNSConfig.() -> Unit) {
     setDohServer(config.dohServer)
     enableSystemDNS(config.enableSystemDNS)
     enableHttpDNS(config.enableHttpDNS)
+    enableLocalCache(config.enableLocalCache)
+    setThreadCount(config.threadCount)
     setLogLevel(config.logLevel)
     setNetworkState(config.networkState)
 }
@@ -62,11 +69,25 @@ object DNSPresets {
      * 默认配置
      */
     val DEFAULT = DNSConfig().apply {
-        dohServer = "https://user_id.alidns.com/dns-query"
+        dohServer = "https://dns.alidns.com/dns-query"
         enableSystemDNS = true
         enableHttpDNS = true
-        threadCount = 8
+        enableLocalCache = true
+        threadCount = 4
         cacheExpireTime = 7200
+        logLevel = LogLevel.INFO
+    }
+
+    /**
+     * 高性能配置
+     */
+    val HIGH_PERFORMANCE = DNSConfig().apply {
+        dohServer = "https://dns.google/dns-query"
+        enableSystemDNS = true
+        enableHttpDNS = true
+        enableLocalCache = true
+        threadCount = 8
+        cacheExpireTime = 3600
         logLevel = LogLevel.INFO
     }
 
@@ -74,9 +95,10 @@ object DNSPresets {
      * 调试配置
      */
     val DEBUG = DNSConfig().apply {
-        dohServer = "https://user_id.alidns.com/dns-query"
+        dohServer = "https://dns.alidns.com/dns-query"
         enableSystemDNS = true
         enableHttpDNS = true
+        enableLocalCache = true
         threadCount = 2
         logLevel = LogLevel.DEBUG
     }
@@ -87,7 +109,21 @@ object DNSPresets {
     val SYSTEM_ONLY = DNSConfig().apply {
         enableSystemDNS = true
         enableHttpDNS = false
+        enableLocalCache = true
+        threadCount = 2
         logLevel = LogLevel.INFO
+    }
+
+    /**
+     * 省电模式
+     */
+    val BATTERY_SAVER = DNSConfig().apply {
+        enableSystemDNS = true
+        enableHttpDNS = false
+        enableLocalCache = true
+        threadCount = 1
+        cacheExpireTime = 14400
+        logLevel = LogLevel.WARN
     }
 }
 
@@ -98,6 +134,8 @@ fun DNSManager.applyPreset(preset: DNSConfig) {
     setDohServer(preset.dohServer)
     enableSystemDNS(preset.enableSystemDNS)
     enableHttpDNS(preset.enableHttpDNS)
+    enableLocalCache(preset.enableLocalCache)
+    setThreadCount(preset.threadCount)
     setLogLevel(preset.logLevel)
     setNetworkState(preset.networkState)
 }

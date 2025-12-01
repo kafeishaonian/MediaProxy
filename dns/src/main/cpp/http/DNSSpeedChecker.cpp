@@ -45,19 +45,31 @@ namespace dns {
             return;
         }
 
+        const int MAX_TEST = std::min(Constants::MAX_IP_SPEED_TEST, static_cast<int>(ip_list.size()));
         Logger::log(LogLevel::INFO, "DNSSpeedChecker",
-                    "开始检测 " + std::to_string(ip_list.size()) + " 个IP的速度");
+                    "智能测速: 只测前 " + std::to_string(MAX_TEST) + " 个IP");
 
         std::vector<std::future<void>> futures;
-        for (auto &ip_model: ip_list) {
+        for (int i = 0; i < MAX_TEST; i++) {
+            auto ip_model = ip_list[i];
+
+            if (auto cached_speed = get_cached_speed(ip_model->get_ip())) {
+                ip_model->set_speed(*cached_speed);
+                Logger::log(LogLevel::DEBUG, "DNSSpeedChecker",
+                            "使用缓存速度: " + ip_model->get_ip() + " = " +
+                            std::to_string(*cached_speed) + "ms");
+                continue;
+            }
+
             futures.push_back(std::async(std::launch::async, [this, ip_model, port]() {
                 int speed = check_speed(ip_model->get_ip(), port);
                 ip_model->set_speed(speed);
 
                 if (speed >= 0) {
+                    cache_speed(ip_model->get_ip(), speed);
                     Logger::log(LogLevel::DEBUG, "DNSSpeedChecker",
-                                "IP: " + ip_model->get_ip() + " 速度: " + std::to_string(speed) +
-                                "ms");
+                                "IP: " + ip_model->get_ip() + " 速度: " +
+                                std::to_string(speed) + "ms");
                 }
             }));
         }
@@ -66,12 +78,15 @@ namespace dns {
             future.wait();
         }
 
+        for (size_t i = MAX_TEST; i < ip_list.size(); i++) {
+            ip_list[i]->set_speed(-1);
+        }
+
         std::sort(ip_list.begin(), ip_list.end(),
                   [](const std::shared_ptr<DNSIPModel> &a,
                      const std::shared_ptr<DNSIPModel> &b) {
                       if (!a->is_valid()) return false;
                       if (!b->is_valid()) return true;
-
                       int speed_a = a->get_speed();
                       int speed_b = b->get_speed();
                       if (speed_a < 0) return false;
@@ -89,9 +104,9 @@ namespace dns {
     int DNSSpeedChecker::check_speed_with_socket(const std::string &ip, int port) {
         DNSSocket socket;
         auto start_time = std::chrono::steady_clock::now();
-        bool contented = socket.connect(ip, port, timeout_);
+        bool connected = socket.connect(ip, port, timeout_);  // Fixed: typo 'contented' -> 'connected'
         auto end_time = std::chrono::steady_clock::now();
-        if (!contented) {
+        if (!connected) {
             return -1;
         }
 
@@ -106,5 +121,43 @@ namespace dns {
     int DNSSpeedChecker::check_speed_with_ping(const std::string &ip) {
         PingResult result = pinger_->ping(ip, 3, timeout_);
         return result.avg_rtt;
+    }
+
+    std::optional<int> DNSSpeedChecker::get_cached_speed(const std::string& ip) {
+        std::lock_guard<std::mutex> lock(cache_mutex_);
+        auto it = speed_cache_.find(ip);
+        if (it != speed_cache_.end()) {
+            time_t now = time(nullptr);
+            if (now - it->second.second < Constants::SPEED_CACHE_TTL_SECONDS) {
+                return it->second.first;
+            }
+            speed_cache_.erase(it);
+        }
+        return std::nullopt;
+    }
+
+    void DNSSpeedChecker::cache_speed(const std::string& ip, int speed) {
+        std::lock_guard<std::mutex> lock(cache_mutex_);
+
+        // Fixed: Add cache size limit to prevent unbounded growth
+        constexpr size_t MAX_CACHE_SIZE = 1000;
+        if (speed_cache_.size() >= MAX_CACHE_SIZE) {
+            // Remove oldest entries (simple FIFO eviction)
+            time_t oldest_time = time(nullptr);
+            std::string oldest_ip;
+
+            for (const auto& entry : speed_cache_) {
+                if (entry.second.second < oldest_time) {
+                    oldest_time = entry.second.second;
+                    oldest_ip = entry.first;
+                }
+            }
+
+            if (!oldest_ip.empty()) {
+                speed_cache_.erase(oldest_ip);
+            }
+        }
+
+        speed_cache_[ip] = {speed, time(nullptr)};
     }
 }

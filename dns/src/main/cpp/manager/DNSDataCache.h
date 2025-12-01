@@ -23,9 +23,6 @@ namespace dns{
         void remove(const std::string& key);
         void clear();
 
-        void save_to_disk(const std::string& filename);
-        void load_from_disk(const std::string& filename);
-
         size_t get_cache_size() const;
 
         void set_cache_dir(const std::string& dir);

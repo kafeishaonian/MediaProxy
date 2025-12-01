@@ -37,9 +37,17 @@ namespace dns {
         bool has_valid_ip() const;
 
         //获取最快IP
-        std::shared_ptr<DNSIPModel> get_bast_ip() const;
+        std::shared_ptr<DNSIPModel> get_best_ip() const;
 
-        std::string get_bast_ip_string() const;
+        std::string get_best_ip_string() const;
+
+        // Deprecated: Use get_best_ip instead
+        [[deprecated("Use get_best_ip instead")]]
+        std::shared_ptr<DNSIPModel> get_bast_ip() const { return get_best_ip(); }
+
+        // Deprecated: Use get_best_ip_string instead
+        [[deprecated("Use get_best_ip_string instead")]]
+        std::string get_bast_ip_string() const { return get_best_ip_string(); }
 
         void sort_by_speed();
 
