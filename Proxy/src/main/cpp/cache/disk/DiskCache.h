@@ -80,7 +80,7 @@ public:
 
     int64_t clear_cache_with_key(const std::string &file_key);
 
-    int get_cache_file_info_with_key(const std::string &fileKey, CacheFileInfo &fileInfo);
+    int get_cache_file_info_with_key(const std::string &file_key, CacheFileInfo &file_info);
 
     int get_cache_complete_and_limit_size_file_list(std::vector<std::string> &file_keys);
 
